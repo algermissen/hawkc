@@ -1,0 +1,78 @@
+#
+# Makefile for hawkc
+#
+CC=@CC@
+AR=ar
+
+.SUFFIXES : .o .c 
+.c.o: 
+	$(CC) $(CFLAGS) -I hawkc -o $*.o -c $<
+
+CFLAGS= -ansi -pedantic -O2 -Wall -Ihawkc
+
+LIBOPT=-lm -lcrypto
+
+LIBOBJS=\
+ hawkc/common.o \
+ hawkc/parser.o \
+
+OBJS=\
+ hawk/hawk.o \
+
+LIB=hawkc/libhawkc.a
+
+
+$(LIB): $(LIBOBJS)
+	$(AR) rc $(LIB) $(LIBOBJS)
+
+HAWK=hawk/hawk
+
+$(HAWK): $(OBJS) $(LIB)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIB) $(LIBOPT)
+
+TESTOBJ=\
+  test/test_parser.o \
+  test/test_authorization_header_parse.o \
+
+
+$(TEST): $(TO) $(LIB)
+	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o $@ $(TO) $(LIB)
+
+
+buildtest: $(LIB) $(TESTOBJ)
+	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_parser test/test_parser.o $(LIB)
+	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_authorization_header_parse test/test_authorization_header_parse.o $(LIB)
+
+
+test: buildtest
+	test/test_parser
+	test/test_authorization_header_parse
+
+
+cleantest:
+	rm -f test/test_parser; rm -f test/test_parser.o
+	rm -f test/test_authorization_header_parse; rm -f test/test_authorization_header_parse.o
+
+
+
+#all: $(LIB) $(HAWK)
+all: $(LIB) 
+
+
+
+clean: cleantest
+	rm -f core; \
+	rm -f gmon.out; \
+	rm -f $(OBJS); \
+	rm -f $(LIBOBJS); \
+	rm -f $(LIB); \
+	rm -f $(HAWK); \
+	
+
+distclean: clean
+	rm -f config.h;
+	rm -f config.status config.cache config.log Makefile;
+	rm -rf autom4te.cache
+	
+
+
