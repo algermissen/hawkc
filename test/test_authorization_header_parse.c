@@ -5,7 +5,7 @@
 static struct HawkcContext ctx;
 static HawkcError e;
 
-int test_1() {
+int test_parse() {
 
 	char *h1 = "Hawk id=\"someId\",mac=\"2D320BF8A5948601F9FA3FBA4800C8F7A1D203A317945330854D65228864468D\",ts=\"1373805459\",nonce=\"abc\"";
 
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
 	hawkc_context_init(&ctx);
 
-	RUNTEST(argv[0],test_1);
+	RUNTEST(argv[0],test_parse);
 
 	return 0;
 }

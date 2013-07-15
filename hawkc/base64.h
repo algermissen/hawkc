@@ -1,7 +1,7 @@
 /* The base64.c for the original license of the base64 code */
 
-#ifndef BASE64URL_H
-#define BASE64URL_H
+#ifndef BASE64_H
+#define BASE64_H
 
 #include "hawkc.h"
 
@@ -9,10 +9,10 @@
 extern "C" {
 #endif
 
-/** Base64url encode the given data.
+/** Base64 encode the given data.
  *
- * This function encodes the data using Base64 URL-safe encoding according to RFC 4648 section 5
- * http://tools.ietf.org/html/rfc4648#section-5
+ * This function encodes the data using Base64 encoding according to RFC 4648
+ * http://tools.ietf.org/html/rfc4648
  *
  * Stores the encoded unsigned char sequence in the provided buffer. The caller is responsible for
  * supplying a buffer of sufficient length.
@@ -21,12 +21,12 @@ extern "C" {
  *
  * The result will not be \0-terminated.
  */
-unsigned char* HAWKCAPI hawkc_base64url_encode( const unsigned char *data, int data_len, unsigned char *resurl, int *result_len );
+unsigned char* HAWKCAPI hawkc_base64_encode( const unsigned char *data, int data_len, unsigned char *res, int *result_len );
 
-/** Base64url decode the given data.
+/** Base64 decode the given data.
  *
- * This function decodes the data using Base64 URL-safe decoding according to RFC 4648 section 5
- * http://tools.ietf.org/html/rfc4648#section-5
+ * This function decodes the data using Base64 decoding according to RFC 4648
+ * http://tools.ietf.org/html/rfc4648
  *
  * Stores the decoded unsigned char sequence in the provided buffer. The caller is responsible for
  * supplying a buffer of sufficient length.
@@ -35,7 +35,7 @@ unsigned char* HAWKCAPI hawkc_base64url_encode( const unsigned char *data, int d
  *
  * The result will not be \0-terminated.
  */
-unsigned char* HAWKCAPI hawkc_base64url_decode( const unsigned char *data, int data_len, unsigned char *result, int *result_len );
+unsigned char* HAWKCAPI hawkc_base64_decode( const unsigned char *data, int data_len, unsigned char *result, int *result_len );
 
 #ifdef __cplusplus
 } // extern "C"

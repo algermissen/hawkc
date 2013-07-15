@@ -73,7 +73,7 @@ const static unsigned char unb64[]={
 
 
 unsigned char* hawkc_base64url_encode(const unsigned char* data, int data_len,
-		unsigned char *result, int *result_len) {
+		unsigned char *result, unsigned int *result_len) {
 
 	int rc = 0; /* result counter */
 	int byteNo; /* I need this after the loop */
@@ -118,7 +118,7 @@ unsigned char* hawkc_base64url_encode(const unsigned char* data, int data_len,
 }
 
 unsigned char *hawkc_base64url_decode(const unsigned char* data, int data_len,
-		unsigned char *result, int *result_len) {
+		unsigned char *result, unsigned int *result_len) {
 	int cb = 0;
 	int charNo;
 	int pad = 0;

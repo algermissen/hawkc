@@ -18,6 +18,34 @@ extern "C" {
 #define HAWKCAPI
 #endif
 
+/** The following macros define buffer size constants.
+ *
+ * These constants are defined for convenience, to allow
+ * the callers of functions that require caller-buffer-allocation
+ * to use fixed buffers as opposed to dealing with dynamic
+ * allocation and deallocation of memory.
+ *
+ * The buffer sizes are considerably small to justify the
+ * space overhead.
+ *
+ * These buffer sizes depend on the algorithms and options defined
+ * in common.c and must be adjusted if new algorithms are added that
+ * require increased buffer sizes.
+ *
+ * They need to be defined in this header because the structs (which
+ * we deliberately expose to the user) make use of the macros.
+ */
+
+/*
+ * Must match the specifications of the supplied HMAC algorithms.
+ *
+ */
+#define MAX_HMAC_BYTES 32
+
+/* 32/3 * 4 */
+#define MAX_HMAC_BYTES_B64 40
+
+
 typedef struct HawkcString {
 	size_t len;
 	char *data;
@@ -74,9 +102,16 @@ struct HawkcContext {
 	/** Error code of underlying crypto library, or 0 if not applicable */
 	unsigned long crypto_error;
 
+	HawkcString method;
+	HawkcString path;
+	HawkcString host;
+	int port;
+
 	struct AuthorizationHeader header_in;
 	struct AuthorizationHeader header_out;
 	struct WwwAuthenticateHeader wwwAuthenticateHeader;
+
+	unsigned char hmac[MAX_HMAC_BYTES_B64];
 
 };
 
@@ -86,8 +121,10 @@ HAWKCAPI void* hawkc_malloc(HawkcContext ctx, size_t size);
 HAWKCAPI void* hawkc_calloc(HawkcContext ctx, size_t count, size_t size);
 HAWKCAPI void hawkc_free(HawkcContext ctx, void *ptr);
 
-
-
+HAWKCAPI void hawkc_context_set_method(HawkcContext ctx,char *method, size_t len);
+HAWKCAPI void hawkc_context_set_path(HawkcContext ctx,char *path, size_t len);
+HAWKCAPI void hawkc_context_set_host(HawkcContext ctx,char *host, size_t len);
+HAWKCAPI void hawkc_context_set_port(HawkcContext ctx,int port);
 
 HAWKCAPI HawkcError hawkc_parse_authorization_header(HawkcContext ctx, char *value, size_t len);
 
@@ -115,23 +152,14 @@ HawkcError HAWKCAPI hawkc_get_error_code(HawkcContext ctx);
 unsigned long HAWKCAPI hawkc_get_crypto_error(HawkcContext ctx);
 
 
-/*
- * Stuff below to be adapted.
- */
-
-
-typedef struct Options *Options;
 typedef struct Algorithm *Algorithm;
 
 /** The algorithms and options defined by hawkc.
  *
  * Please refer to common.c for their definition.
  */
-extern Algorithm AES_128_CBC;
-extern Algorithm AES_256_CBC;
 extern Algorithm SHA_256;
-extern Options DEFAULT_ENCRYPTION_OPTIONS;
-extern Options DEFAULT_INTEGRITY_OPTIONS;
+extern Algorithm SHA_1;
 
 
 

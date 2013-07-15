@@ -21,14 +21,6 @@ static HawkcError scheme_handler(HawkcContext ctx,HawkcString scheme,void *data)
 	return HAWKC_OK;
 }
 static HawkcError param_handler(HawkcContext ctx,HawkcString key, HawkcString value,void *data) {
-	/*
-	HawkcString id;
-		HawkcString mac;
-		HawkcString hash;
-		HawkcString nonce;
-		time_t ts;
-		HawkcString ext;
-		*/
 
 	AuthorizationHeader h = (AuthorizationHeader)data;
 	if(key.len == 2 && !strncmp(key.data,"id",key.len)) {
@@ -39,8 +31,10 @@ static HawkcError param_handler(HawkcContext ctx,HawkcString key, HawkcString va
 		h->mac.len = value.len;
 	} else if(key.len == 4 && !strncmp(key.data,"hash",key.len)) {
 		h->hash.data = value.data;
+		h->hash.len = value.len;
 	} else if(key.len == 5 && !strncmp(key.data,"nonce",key.len)) {
 		h->nonce.data = value.data;
+		h->nonce.len = value.len;
 	} else if(key.len == 2 && !strncmp(key.data,"ts",key.len)) {
 		HawkcError e;
 		if( (e = parse_time(ctx,value,&(h->ts))) != HAWKC_OK) {
@@ -48,6 +42,7 @@ static HawkcError param_handler(HawkcContext ctx,HawkcString key, HawkcString va
 		}
 	} else if(key.len == 3 && !strncmp(key.data,"ext",key.len)) {
 		h->ext.data = value.data;
+		h->ext.len = value.len;
 	} else {
 		; /* ignore unknown parameter */
 	}
@@ -81,7 +76,7 @@ HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
 HawkcError hawkc_parse_authorization_header(HawkcContext ctx, char *value, size_t len) {
 	HawkcError e;
 
-	/* FIXME: check and clear existing buffer */
+	/* FIXME: check and clear existing buffer and members */
 	/* FIXME: use better approach...
 	assert(ctx->header_in.buf == NULL);
 	assert(ctx->header_in.buf_len == 0);

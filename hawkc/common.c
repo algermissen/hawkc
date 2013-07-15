@@ -4,6 +4,11 @@
 #include <stdarg.h>
 #include "hawkc.h"
 #include "common.h"
+#include "crypto.h"
+
+static const char *HAWK_HEADER_PREFIX = "hawk.1.header";
+static const char LF = '\n';
+
 
 /* FIXME: docme, cleanme */
 
@@ -16,30 +21,11 @@
  * Also, you must add to the selection if-cascades in crypto_openssl.c for them
  * to be recognized.
  */
-struct Algorithm _AES_128_CBC = { "aes-128-cbc", 128, 128 };
-struct Algorithm _AES_256_CBC = { "aes-256-cbc", 256, 128 };
-struct Algorithm _SHA_256 = { "sha256", 256, 0 };
+struct Algorithm _SHA_256 = { "sha256" };
+struct Algorithm _SHA_1 = { "sha1" };
 
-Algorithm AES_128_CBC = &_AES_128_CBC;
-Algorithm AES_256_CBC = &_AES_256_CBC;
 Algorithm SHA_256 = &_SHA_256;
-
-/** Default options provided by hawkc.
- *
- * You must make sure that MAX_SALT_BYTES defined in common.h
- * matches the largest salt bit value defined by the options.
- *
- * There is currently no support for adding more options through
- * user code. This is an open issue:
- * https://github.com/algermissen/hawkc/issues/2
- *
- *
- */
-struct Options _DEFAULT_ENCRYPTION_OPTIONS = { 256, &_AES_256_CBC, 1 };
-struct Options _DEFAULT_INTEGRITY_OPTIONS = { 256, &_SHA_256, 1 };
-
-Options DEFAULT_ENCRYPTION_OPTIONS = &_DEFAULT_ENCRYPTION_OPTIONS;
-Options DEFAULT_INTEGRITY_OPTIONS = &_DEFAULT_INTEGRITY_OPTIONS;
+Algorithm SHA_1 = &_SHA_1;
 
 /** Error strings used by hawkc_strerror
  *
@@ -89,11 +75,13 @@ HawkcError hawkc_get_error_code(HawkcContext ctx) {
 
 
 void hawkc_context_init(HawkcContext ctx) {
+	memset(ctx,0,sizeof(struct HawkcContext));
 	ctx->error = HAWKC_OK;
 	ctx->malloc = NULL;
 	ctx->calloc = NULL;
 	ctx->free = NULL;
 
+	/* FIXME kann wohl weg */
 	ctx->header_in.buf = NULL;
 	ctx->header_in.buf_len = 0;
 	ctx->header_in.buf_pos = 0;
@@ -124,7 +112,135 @@ void hawkc_free(HawkcContext ctx, void *ptr) {
 
 
 
+void hawkc_context_set_method(HawkcContext ctx,char *method, size_t len) {
+	ctx->method.data = method;
+	ctx->method.len = len;
+}
+void hawkc_context_set_path(HawkcContext ctx,char *path, size_t len) {
+	ctx->path.data = path;
+	ctx->path.len = len;
+
+}
+void hawkc_context_set_host(HawkcContext ctx,char *host, size_t len) {
+	ctx->host.data = host;
+	ctx->host.len = len;
+
+}
+void hawkc_context_set_port(HawkcContext ctx,int port) {
+	ctx->port = port;
+}
+
+HawkcError hawkc_validate_hmac(HawkcContext ctx, Algorithm algorithm, const unsigned char *password, int password_len,int *is_valid) {
+	HawkcError e;
+	int len,base_len;
+	unsigned char base_buf[1024];
+
+
+	/*
+		if( (buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
+			assert(!"FIXME");
+		}
+		*/
+
+	hawkc_create_base_string(ctx,&(ctx->header_in),base_buf,&base_len);
+
+	if( (e = hawkc_hmac(ctx, algorithm, password, password_len, base_buf, base_len,ctx->hmac,&len)) != HAWKC_OK) {
+		return e;
+	}
+	printf("{%.*s}",len, ctx->hmac);
+	printf("{%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
+
+	if( ctx->header_in.mac.len != len) {
+		*is_valid = 0;
+		return HAWKC_OK;
+	}
+
+	printf("{%.*s}",len, ctx->hmac);
+	printf("{%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
+
+
+	if(!fixed_time_equal((unsigned char*)ctx->header_in.mac.data,ctx->hmac,len)) {
+		*is_valid = 0;
+		return HAWKC_OK;
+	}
+	printf("{%.*s}",len, ctx->hmac);
+	printf("{%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
+	*is_valid = 1;
+	return HAWKC_OK;
+}
+
+
+/* internal */
+size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader header) {
+
+	size_t n = 0;
+	n += strlen(HAWK_HEADER_PREFIX);
+	n++;
+	n += 10; /* header->ts; FIXME: dummy for ts len */
+	n++;
+	n += header->nonce.len;
+	n++;
+	n += ctx->method.len;
+	n++;
+	n += ctx->path.len;
+	n++;
+	n += ctx->host.len;
+	n++;
+	n += 10; /* FIXME for the port int */
+	n++;
+
+	n++; /* empty body hash FIXME:impl */
+
+	n += header->ext.len;
+	n++;
+	return n;
+}
+
+void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsigned char* buf, int *len) {
+	char *ptr;
+	int n;
+	ptr = (char*)buf;
+
+	strncpy(ptr,HAWK_HEADER_PREFIX,strlen(HAWK_HEADER_PREFIX));
+	ptr += strlen(HAWK_HEADER_PREFIX);
+	*ptr = LF; ptr++;
+
+	n = sprintf(ptr,"%ld",header->ts); ptr += n;
+	*ptr = LF; ptr++;
+
+	strncpy(ptr,header->nonce.data,header->nonce.len);
+	ptr += header->nonce.len;
+	*ptr = LF; ptr++;
+
+	strncpy(ptr,ctx->method.data,ctx->method.len);
+	ptr += ctx->method.len;
+	*ptr = LF; ptr++;
+
+	strncpy(ptr,ctx->path.data,ctx->path.len);
+	ptr += ctx->path.len;
+	*ptr = LF; ptr++;
+
+	strncpy(ptr,ctx->host.data,ctx->host.len);
+	ptr += ctx->host.len;
+	*ptr = LF; ptr++;
+
+	n = sprintf(ptr,"%d",ctx->port); ptr += n;
+	*ptr = LF; ptr++;
+
+	/* empty body hash FIXME */
+	*ptr = LF; ptr++;
+
+	strncpy(ptr,header->ext.data,header->ext.len);
+	ptr += header->ext.len;
+	*ptr = LF; ptr++;
+
+	*len = ptr - (char*)buf;
+}
+
+
+
 /* Lookup 'table' for hex encoding */
+/* FIXME: kann weg, oder?
 static const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 		'a', 'b', 'c', 'd', 'e', 'f' };
 void hawkc_bytes_to_hex(const unsigned char *bytes, int len, unsigned char *buf) {
@@ -136,6 +252,7 @@ void hawkc_bytes_to_hex(const unsigned char *bytes, int len, unsigned char *buf)
 		buf[j * 2 + 1] = hex[v & 0x0F];
 	}
 }
+*/
 
 
 

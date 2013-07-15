@@ -13,8 +13,11 @@ CFLAGS= -ansi -pedantic -O2 -Wall -Ihawkc
 LIBOPT=-lm -lcrypto
 
 LIBOBJS=\
+ hawkc/base64url.o \
+ hawkc/base64.o \
  hawkc/common.o \
  hawkc/parser.o \
+ hawkc/crypto_openssl.o \
 
 OBJS=\
  hawk/hawk.o \
@@ -32,6 +35,10 @@ $(HAWK): $(OBJS) $(LIB)
 
 TESTOBJ=\
   test/test_parser.o \
+  test/test_signing.o \
+  test/test_base64url.o \
+  test/test_base64.o \
+  test/test_crypto.o \
   test/test_authorization_header_parse.o \
 
 
@@ -41,16 +48,28 @@ $(TEST): $(TO) $(LIB)
 
 buildtest: $(LIB) $(TESTOBJ)
 	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_parser test/test_parser.o $(LIB)
+	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_signing test/test_signing.o $(LIB)
+	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_base64url test/test_base64url.o $(LIB)
+	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_base64 test/test_base64.o $(LIB)
+	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_crypto test/test_crypto.o $(LIB)
 	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_authorization_header_parse test/test_authorization_header_parse.o $(LIB)
 
 
 test: buildtest
 	test/test_parser
+	test/test_signing
+	test/test_base64url
+	test/test_base64
+	test/test_crypto
 	test/test_authorization_header_parse
 
 
 cleantest:
 	rm -f test/test_parser; rm -f test/test_parser.o
+	rm -f test/test_signing; rm -f test/test_signing.o
+	rm -f test/test_base64url; rm -f test/test_base64url.o
+	rm -f test/test_base64; rm -f test/test_base64.o
+	rm -f test/test_crypto; rm -f test/test_crypto.o
 	rm -f test/test_authorization_header_parse; rm -f test/test_authorization_header_parse.o
 
 
