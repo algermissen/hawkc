@@ -21,11 +21,11 @@ static const char LF = '\n';
  * Also, you must add to the selection if-cascades in crypto_openssl.c for them
  * to be recognized.
  */
-struct Algorithm _SHA_256 = { "sha256" };
-struct Algorithm _SHA_1 = { "sha1" };
+struct HawkcAlgorithm _HAWKC_SHA_256 = { "sha256" };
+struct HawkcAlgorithm _HAWKC_SHA_1 = { "sha1" };
 
-Algorithm SHA_256 = &_SHA_256;
-Algorithm SHA_1 = &_SHA_1;
+HawkcAlgorithm HAWKC_SHA_256 = &_HAWKC_SHA_256;
+HawkcAlgorithm HAWKC_SHA_1 = &_HAWKC_SHA_1;
 
 /** Error strings used by hawkc_strerror
  *
@@ -33,6 +33,7 @@ Algorithm SHA_1 = &_SHA_1;
 static char *error_strings[] = {
 		"No error", /* HAWKC_OK */
 		"Token parse error", /* HAWKC_TOKEN_PARSE_ERROR */
+		"Authentication scheme name not Hawk", /* HAWKC_BAD_SCHEME_ERROR */
 		"Token invalid", /* HAWKC_TOKEN_VALIDATION_ERROR */
 		"Unknown algorithm", /* HAWKC_ERROR_UNKNOWN_ALGORITHM */
 		"Some unrecognized error in the crypto library occurred", /* HAWKC_CRYPTO_ERROR */
@@ -126,11 +127,13 @@ void hawkc_context_set_host(HawkcContext ctx,char *host, size_t len) {
 	ctx->host.len = len;
 
 }
-void hawkc_context_set_port(HawkcContext ctx,int port) {
-	ctx->port = port;
+void hawkc_context_set_port(HawkcContext ctx,char *port, size_t len) {
+	ctx->port.data = port;
+	ctx->port.len = len;
+
 }
 
-HawkcError hawkc_validate_hmac(HawkcContext ctx, Algorithm algorithm, const unsigned char *password, int password_len,int *is_valid) {
+HawkcError hawkc_validate_hmac(HawkcContext ctx, HawkcAlgorithm algorithm, const unsigned char *password, int password_len,int *is_valid) {
 	HawkcError e;
 	int len,base_len;
 	unsigned char base_buf[1024];
@@ -147,26 +150,41 @@ HawkcError hawkc_validate_hmac(HawkcContext ctx, Algorithm algorithm, const unsi
 	if( (e = hawkc_hmac(ctx, algorithm, password, password_len, base_buf, base_len,ctx->hmac,&len)) != HAWKC_OK) {
 		return e;
 	}
-	printf("{%.*s}",len, ctx->hmac);
-	printf("{%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
+	/* FIXME
+	fprintf(stderr,"calculated: {%.*s}",len, ctx->hmac);
+	fprintf(stderr,"got:        {%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
+	*/
 
 	if( ctx->header_in.mac.len != len) {
 		*is_valid = 0;
 		return HAWKC_OK;
 	}
-
+	/*
 	printf("{%.*s}",len, ctx->hmac);
 	printf("{%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
+	*/
 
 
-	if(!fixed_time_equal((unsigned char*)ctx->header_in.mac.data,ctx->hmac,len)) {
+	if(!hawkc_fixed_time_equal((unsigned char*)ctx->header_in.mac.data,ctx->hmac,len)) {
 		*is_valid = 0;
 		return HAWKC_OK;
 	}
+	/*
 	printf("{%.*s}",len, ctx->hmac);
 	printf("{%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
+	*/
 	*is_valid = 1;
 	return HAWKC_OK;
+}
+
+HawkcAlgorithm hawkc_algorithm_by_name(char *name, int len) {
+	if (len == strlen(HAWKC_SHA_1->name) && strncmp(name, HAWKC_SHA_1->name, len) == 0) {
+		return HAWKC_SHA_1;
+	} else if (len == strlen(HAWKC_SHA_256->name) && strncmp(name, HAWKC_SHA_256->name, len) == 0) {
+		return HAWKC_SHA_256;
+	} else {
+		return NULL;
+	}
 }
 
 
@@ -186,7 +204,7 @@ size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader 
 	n++;
 	n += ctx->host.len;
 	n++;
-	n += 10; /* FIXME for the port int */
+	n += ctx->port.len;
 	n++;
 
 	n++; /* empty body hash FIXME:impl */
@@ -224,7 +242,8 @@ void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsi
 	ptr += ctx->host.len;
 	*ptr = LF; ptr++;
 
-	n = sprintf(ptr,"%d",ctx->port); ptr += n;
+	strncpy(ptr,ctx->port.data,ctx->port.len);
+	ptr += ctx->port.len;
 	*ptr = LF; ptr++;
 
 	/* empty body hash FIXME */
@@ -235,6 +254,9 @@ void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsi
 	*ptr = LF; ptr++;
 
 	*len = ptr - (char*)buf;
+	/* FIXME
+	fprintf(stderr,"\n---------------------------\n%.*s\n---------------------------\n" , *len , buf);
+	*/
 }
 
 
@@ -256,7 +278,7 @@ void hawkc_bytes_to_hex(const unsigned char *bytes, int len, unsigned char *buf)
 
 
 
-int fixed_time_equal(unsigned char *lhs, unsigned char * rhs, int len) {
+int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, int len) {
 
 	int equal = 1;
 	int i;

@@ -10,7 +10,7 @@
 #include "crypto.h"
 #include "base64.h"
 
-HawkcError hawkc_hmac(HawkcContext ctx, Algorithm algorithm,
+HawkcError hawkc_hmac(HawkcContext ctx, HawkcAlgorithm algorithm,
 		const unsigned char *password, int password_len,
 		const unsigned char *data, int data_len, unsigned char *result,
 		int *result_len) {
@@ -20,9 +20,9 @@ HawkcError hawkc_hmac(HawkcContext ctx, Algorithm algorithm,
 	unsigned char buf[MAX_HMAC_BYTES];
 	unsigned int len;
 
-	if (strcmp(algorithm->name, SHA_1->name) == 0) {
+	if (strcmp(algorithm->name, HAWKC_SHA_1->name) == 0) {
 		md = EVP_sha1();
-	} else if (strcmp(algorithm->name, SHA_256->name) == 0) {
+	} else if (strcmp(algorithm->name, HAWKC_SHA_256->name) == 0) {
 		md = EVP_sha256();
 	} else {
 		return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,

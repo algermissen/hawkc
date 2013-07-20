@@ -10,7 +10,7 @@ extern "C" {
 /**
  * Compute an HMAC of the supplied data using the specified algorithm.
  */
-HawkcError hawkc_hmac(HawkcContext ctx, Algorithm algorithm,
+HawkcError hawkc_hmac(HawkcContext ctx, HawkcAlgorithm algorithm,
 		const unsigned char *password, int password_len,
 		const unsigned char *data, int data_len, unsigned char *result,
 		int *result_len);

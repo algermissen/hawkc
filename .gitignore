@@ -18,3 +18,8 @@
 
 .project
 .cproject
+
+Makefile
+config.log
+config.status
+sample_curl

@@ -16,7 +16,9 @@ typedef HawkcError (*HawkcSchemeHandler) (HawkcContext ctx, HawkcString scheme, 
 typedef HawkcError (*HawkcParamHandler) (HawkcContext ctx, HawkcString key, HawkcString value, void*data);
 
 
-
+struct HawkcAlgorithm {
+	const char* name;
+};
 
 
 
@@ -26,11 +28,7 @@ typedef HawkcError (*HawkcParamHandler) (HawkcContext ctx, HawkcString key, Hawk
 #define NBYTES(bits) (ceil((double) (bits) / 8) )
 
 
-/** Structure for the Algorithm typedef in hawkc.h
- */
-struct Algorithm {
-	const char* name;
-};
+
 
 
 /**
@@ -62,7 +60,7 @@ void HAWKCAPI hawkc_bytes_to_hex(const unsigned char *bytes, int len, unsigned c
  *
  * Return 1 if the supplied byte sequences are byte-wise equal, 0 otherwise.
  */
-int fixed_time_equal(unsigned char *lhs, unsigned char * rhs, int len);
+int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, int len);
 
 
 size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader header);

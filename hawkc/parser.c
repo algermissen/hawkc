@@ -16,7 +16,7 @@ static HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp);
 static HawkcError scheme_handler(HawkcContext ctx,HawkcString scheme,void *data) {
 	if((scheme.len != 4) || strncmp(scheme.data,"Hawk",4) != 0) {
 		return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
-					HAWKC_PARSE_ERROR, "Unsupported authentication scheme '%.*s'" , scheme.len,scheme.data);
+					HAWKC_BAD_SCHEME_ERROR, "Unsupported authentication scheme '%.*s'" , scheme.len,scheme.data);
 	}
 	return HAWKC_OK;
 }
