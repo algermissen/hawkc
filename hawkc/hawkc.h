@@ -4,9 +4,6 @@
  * This header file is all you need to include to use hawkc
  * functionality from outside the hawkc library.
  *
- * FIXME:
- * Think about general lib size, e.g. static error buffer and the like.
- * Same in ciron
  */
 #ifndef HAWKC_H
 #define HAWKC_H 1
@@ -68,17 +65,18 @@ typedef enum {
 	HAWKC_TOKEN_VALIDATION_ERROR, /* Token cannot be validated */
 	HAWKC_ERROR_UNKNOWN_ALGORITHM, /* Unknown algorithm */
 	HAWKC_CRYPTO_ERROR, /* Some unrecognized error in the crypto library occurred */
-	HAWKC_TIME_VALUE_ERROR /* Not a valid unix time value */
+	HAWKC_TIME_VALUE_ERROR, /* Not a valid unix time value */
+	HAWKC_ERROR /* unspecific error */
 	/* If you add errors here, add them in common.c also */
 } HawkcError;
 
 typedef struct HawkcContext *HawkcContext;
 
-/** Structure for the Algorithm typedef in hawkc.h
- */
-
 typedef struct HawkcAlgorithm *HawkcAlgorithm;
 
+/*
+ * Memory allocation function pointers
+ */
 typedef void* (*HawkcMallocFunc)(HawkcContext ctx, size_t size);
 typedef void* (*HawkcCallocFunc)(HawkcContext ctx, size_t count, size_t size);
 typedef void (*HawkcFreeFunc)(HawkcContext ctx, void *ptr);

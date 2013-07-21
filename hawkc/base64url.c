@@ -36,7 +36,7 @@
  #include <stdlib.h>
  */
 
-#include "common.h"  /* for assert */
+#include <assert.h>
 
 const static unsigned char* b64 =
 		(unsigned char *) "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";

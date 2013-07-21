@@ -1,5 +1,6 @@
-#ifndef COMMON_H
-#define COMMON_H 1
+#ifndef HAWKC_COMMON_H
+#define HAWKC_COMMON_H 1
+
 #include <ctype.h>
 #include <math.h>
 #include "config.h"
@@ -9,27 +10,22 @@
 extern "C" {
 #endif
 
-
-
-
+/*
+ * Callback function types for the Auth-header parser.
+ */
 typedef HawkcError (*HawkcSchemeHandler) (HawkcContext ctx, HawkcString scheme, void*data);
 typedef HawkcError (*HawkcParamHandler) (HawkcContext ctx, HawkcString key, HawkcString value, void*data);
 
-
+/** Structure for the Algorithm typedef in hawkc.h
+ */
 struct HawkcAlgorithm {
 	const char* name;
 };
-
-
 
 /** A macro to calculate byte size from number of bits.
  *
  */
 #define NBYTES(bits) (ceil((double) (bits) / 8) )
-
-
-
-
 
 /**
  * Mocro used to supply a value for cases where an error is a hawkc-level
@@ -43,18 +39,33 @@ struct HawkcAlgorithm {
  */
 HawkcError HAWKCAPI hawkc_set_error(HawkcContext ctx, const char *file, int line, unsigned long crypto_error,HawkcError e, const char *fmt, ...);
 
-
-/** Turn an unsigned char array into an array of hex-encoded bytes.
+/* Calculate the length of the Hawk header base string used for HMAC generation
  *
- * The result will encode each bye as a two-chars hex value (00 to ff)
- * and thus be twice as long as the input.
- *
- * The caller is responsible to provide a buffer of at least 2xlen
- * bytes to hold the result.
- *
- * Does not \0 terminate the created string.
+ * Useful to check or determine buffer sizes.
  */
-void HAWKCAPI hawkc_bytes_to_hex(const unsigned char *bytes, int len, unsigned char *buf);
+size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader header);
+
+/** Create Hawk header base string to be used for HMAC generation.
+ *
+ */
+void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsigned char* base_buf, int *base_len);
+
+/** Parse an Authorization or WWW-Authenticate header.
+ *
+ * This will parse headers conforming to http://tools.ietf.org/html/draft-ietf-httpbis-p7-auth#section-4
+ * except for the use of token68 tokens. In other words, you won't be able to parse
+ * HTTP Basic Auth Authorization headers with this.
+ *
+ * Function parses a string 'value' of 'len' bytes and will call the scheme handler for the scheme
+ * token and the param_handler for each parameter/value pair encountered.
+ *
+ * Parsed parts will not be copied, the provided HawkString variables simply point to the portions
+ * of the supplied string 'value'.
+ *
+ * Caveat: This means that extracted quoted strings will contain the escape characters. It is
+ * the responsibility of the caller to make a copy of the quoted string and remove the \.
+ */
+HawkcError hawkc_parse_auth_header(HawkcContext ctx, char *value, size_t len, HawkcSchemeHandler scheme_handler, HawkcParamHandler param_handler, void *data);
 
 /** Fixed time byte-wise comparision.
  *
@@ -63,55 +74,10 @@ void HAWKCAPI hawkc_bytes_to_hex(const unsigned char *bytes, int len, unsigned c
 int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, int len);
 
 
-size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader header);
-void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsigned char* base_buf, int *base_len);
-
-
-
-
-/** The remainder of this header file defines utilities for
- * tracing and assertions thathave been used throughout development and
- * debugging.
- */
-
-int HAWKCAPI hawkc_trace_bytes(const char *name, const unsigned char *bytes, int len);
-
-#ifndef NDEBUG
-#  undef _
-#  define _ ,
-#  define TRACE(FMT) do { hawkc_trace(FMT); } while (0)
-   int HAWKCAPI hawkc_trace(const char * fmt, ...);
-#else
-#  define TRACE(FMT)     /* empty */
-   /* no prototype for hawkc_trace() ! */
-#endif /* !NDEBUG */
-
-
-
-/* Uncomment this and '#ifdef 0' the code below to
- *   use C STDLIB assertions.
- * include <assert.h>
- */
-
-#ifdef assert
-#undef assert
-#endif
-
-void HAWKCAPI hawkc_assert(const char*,const char *,unsigned);
-
-#define assert(f) \
-   	do { \
-   		if(f) {} \
-   		else hawkc_assert(#f,__FILE__,__LINE__); \
-   	} while(0);
-
-HAWKCAPI HawkcError hawkc_parse_auth_header(HawkcContext ctx, char *value, size_t len, HawkcSchemeHandler scheme_handler, HawkcParamHandler param_handler, void *data);
-
-
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
 
-#endif /* !defined COMMON_H */
+#endif /* !defined HAWKC_COMMON_H */
  

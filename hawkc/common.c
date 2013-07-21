@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <stdarg.h>
 #include "hawkc.h"
 #include "common.h"
@@ -9,8 +10,6 @@
 static const char *HAWK_HEADER_PREFIX = "hawk.1.header";
 static const char LF = '\n';
 
-
-/* FIXME: docme, cleanme */
 
 /**
  * Algorithms provided by hawkc.
@@ -37,12 +36,13 @@ static char *error_strings[] = {
 		"Token invalid", /* HAWKC_TOKEN_VALIDATION_ERROR */
 		"Unknown algorithm", /* HAWKC_ERROR_UNKNOWN_ALGORITHM */
 		"Some unrecognized error in the crypto library occurred", /* HAWKC_CRYPTO_ERROR */
-		"Not a unix time vallue" , /* HAWKC_TIME_VALUE_ERROR */
+		"Not a unix time value" , /* HAWKC_TIME_VALUE_ERROR */
+		"Unspecific error", /* HAWKC_ERROR */
 		NULL
 };
 
 char* hawkc_strerror(HawkcError e) {
-	assert(e >= 0 && e <= 0);
+	assert(e >= HAWKC_OK && e <= HAWKC_ERROR);
 	return error_strings[e];
 }
 
@@ -81,11 +81,6 @@ void hawkc_context_init(HawkcContext ctx) {
 	ctx->malloc = NULL;
 	ctx->calloc = NULL;
 	ctx->free = NULL;
-
-	/* FIXME kann wohl weg */
-	ctx->header_in.buf = NULL;
-	ctx->header_in.buf_len = 0;
-	ctx->header_in.buf_pos = 0;
 
 }
 
@@ -140,6 +135,8 @@ HawkcError hawkc_validate_hmac(HawkcContext ctx, HawkcAlgorithm algorithm, const
 
 
 	/*
+	 * FIXME: See https://github.com/algermissen/hawkc/issues/3
+	 *
 		if( (buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
 			assert(!"FIXME");
 		}
@@ -159,7 +156,7 @@ HawkcError hawkc_validate_hmac(HawkcContext ctx, HawkcAlgorithm algorithm, const
 		*is_valid = 0;
 		return HAWKC_OK;
 	}
-	/*
+	/* FIXME
 	printf("{%.*s}",len, ctx->hmac);
 	printf("{%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
 	*/
@@ -194,7 +191,7 @@ size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader 
 	size_t n = 0;
 	n += strlen(HAWK_HEADER_PREFIX);
 	n++;
-	n += 10; /* header->ts; FIXME: dummy for ts len */
+	n += 10; /* UNIX timestamp is 10 chars max. */
 	n++;
 	n += header->nonce.len;
 	n++;
@@ -207,7 +204,7 @@ size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader 
 	n += ctx->port.len;
 	n++;
 
-	n++; /* empty body hash FIXME:impl */
+	n++; /* empty body hash See https://github.com/algermissen/hawkc/issues/1 */
 
 	n += header->ext.len;
 	n++;
@@ -260,24 +257,6 @@ void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsi
 }
 
 
-
-/* Lookup 'table' for hex encoding */
-/* FIXME: kann weg, oder?
-static const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-		'a', 'b', 'c', 'd', 'e', 'f' };
-void hawkc_bytes_to_hex(const unsigned char *bytes, int len, unsigned char *buf) {
-	int j;
-	for (j = 0; j < len; j++) {
-		int v;
-		v = bytes[j] & 0xFF;
-		buf[j * 2] = hex[v >> 4];
-		buf[j * 2 + 1] = hex[v & 0x0F];
-	}
-}
-*/
-
-
-
 int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, int len) {
 
 	int equal = 1;
@@ -290,36 +269,3 @@ int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, int len) {
 
 	return equal;
 }
-
-
-
-/** Tracing and assertion utilities below
- *
- */
-
-int hawkc_trace(const char * fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-	return 0;
-}
-
-int hawkc_trace_bytes(const char *name, const unsigned char *bytes, int len) {
-	int i;
-	fprintf(stderr, "Byte array %s: ", name);
-	for (i = 0; i < len; i++) {
-		fprintf(stderr, "%s0x%02x", (i == 0) ? "" : ",", bytes[i]);
-	}
-	fprintf(stderr, "\n");
-	return 0;
-}
-
-void hawkc_assert(const char *exp, const char *file, unsigned line) {
-	fflush(NULL );
-	fprintf(stderr, "\n\nAssertion \"%s\" failed in %s, line %u\n", exp, file,
-			line);
-	fflush(stderr);
-	abort();
-}
-

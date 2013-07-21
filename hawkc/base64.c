@@ -38,8 +38,6 @@
  #include <stdlib.h>
  */
 
-#include "common.h"  /* for assert */
-
 const static char* b64="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" ;
 
 const static unsigned char unb64[]={
