@@ -15,7 +15,7 @@ static HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp);
 
 static HawkcError scheme_handler(HawkcContext ctx,HawkcString scheme,void *data) {
 	if((scheme.len != 4) || strncmp(scheme.data,"Hawk",4) != 0) {
-		return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
+		return hawkc_set_error(ctx,
 					HAWKC_BAD_SCHEME_ERROR, "Unsupported authentication scheme '%.*s'" , scheme.len,scheme.data);
 	}
 	return HAWKC_OK;
@@ -59,7 +59,7 @@ HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
 	int i = 0;
 	while(i < ts.len) {
 		if(!isdigit(*p)) {
-			return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
+			return hawkc_set_error(ctx,
 					HAWKC_TIME_VALUE_ERROR, "'%.*s' is not a valid integer" , ts.len,ts.data);
 		}
 		t = (t * 10) + digittoint(*p);
@@ -135,7 +135,7 @@ HawkcError hawkc_parse_auth_header(HawkcContext ctx, char *value, size_t len, Ha
 		p += n;
 		remain -= n;
 		if(*p != '=') {
-			return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
+			return hawkc_set_error(ctx,
 								HAWKC_PARSE_ERROR, "Missing '=' for parameter value");
 		}
 		/* consume '=' */
@@ -177,7 +177,7 @@ HawkcError hawkc_parse_auth_header(HawkcContext ctx, char *value, size_t len, Ha
 				p += n;
 				remain -= n;
 			} else {
-				return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
+				return hawkc_set_error(ctx,
 								HAWKC_PARSE_ERROR, "',' required after parameter value");
 			}
 		}
@@ -208,7 +208,7 @@ HawkcError parse_token(HawkcContext ctx, char *s, size_t len, HawkcString *ptoke
 		p++;
 	}
 	if(i == 0) {
-		return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
+		return hawkc_set_error(ctx,
 						HAWKC_PARSE_ERROR, "Token must have at least one character");
 	}
 	*n = i;
@@ -222,7 +222,7 @@ HawkcError parse_quoted_text(HawkcContext ctx, char *s, size_t len, HawkcString 
 
 
 	if(len == 0 || *p != '"') {
-		return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
+		return hawkc_set_error(ctx,
 						HAWKC_PARSE_ERROR, "Quoted text must start with '\"'");
 	}
 	/* consume " */
@@ -236,7 +236,7 @@ HawkcError parse_quoted_text(HawkcContext ctx, char *s, size_t len, HawkcString 
 	while(i < len && *p != '"') {
 		if(*p == '\\') {
 			if(i+1 == len) {
-				return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
+				return hawkc_set_error(ctx,
 						HAWKC_PARSE_ERROR, "\\ at end of text");
 			}
 			p++;
@@ -248,7 +248,7 @@ HawkcError parse_quoted_text(HawkcContext ctx, char *s, size_t len, HawkcString 
 		ptoken->len++;
 	}
 	if(i >= len) {
-		return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
+		return hawkc_set_error(ctx,
 						HAWKC_PARSE_ERROR, "Quoted text must end with '\"'");
 	}
 

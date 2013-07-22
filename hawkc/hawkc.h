@@ -66,21 +66,36 @@ typedef enum {
 	HAWKC_ERROR_UNKNOWN_ALGORITHM, /* Unknown algorithm */
 	HAWKC_CRYPTO_ERROR, /* Some unrecognized error in the crypto library occurred */
 	HAWKC_TIME_VALUE_ERROR, /* Not a valid unix time value */
+	HAWKC_NO_MEM, /* Unable to allocate memory */
+	HAWKC_REQUIRED_BUFFER_TOO_LARGE, /* Required buffer size is too large */
 	HAWKC_ERROR /* unspecific error */
 	/* If you add errors here, add them in common.c also */
 } HawkcError;
 
+/*
+ * Global handle to pass to all functions.
+ */
 typedef struct HawkcContext *HawkcContext;
 
+/*
+ * Type for HMAC algorithms.
+ */
 typedef struct HawkcAlgorithm *HawkcAlgorithm;
 
 /*
- * Memory allocation function pointers
+ * Memory allocation function pointers. Hawkc allows setting custom
+ * allocation functions. For example, if you need some that do
+ * memory pooling.
  */
 typedef void* (*HawkcMallocFunc)(HawkcContext ctx, size_t size);
 typedef void* (*HawkcCallocFunc)(HawkcContext ctx, size_t count, size_t size);
 typedef void (*HawkcFreeFunc)(HawkcContext ctx, void *ptr);
 
+/*
+ * Type for holding Hawkc Authorization and Server-Authrization
+ * header data. This struct is used for storing parsed data as
+ * well as for constructing header data before creating a string representation.
+ */
 typedef struct AuthorizationHeader {
 	HawkcString id;
 	HawkcString mac;
@@ -88,30 +103,41 @@ typedef struct AuthorizationHeader {
 	HawkcString nonce;
 	time_t ts;
 	HawkcString ext;
-	char *buf;
-	size_t buf_len;
-	size_t buf_pos;
 
 } *AuthorizationHeader;
 
+/*
+ * Type for holding Hawkc WWW-Authenticate
+ * header data. This struct is used for storing parsed data as
+ * well as for constructing header data before creating a string representation.
+ */
 typedef struct WwwAuthenticateHeader {
 	HawkcString id;
 	time_t ts;
-	char *buf;
-	size_t buf_len;
-	size_t buf_pos;
 } *WwwAuthenticateHeader;
 
+/* The global Hawkc context.
+ *
+ * header_in is intended for received Authorization or Server-Authorization header
+ * depending on whether the library is used on the server- or client side.
+ *
+ * header_out is intended for Authorization or Server-Authorization header to send,
+ * depending on whether the library is used on the server- or client side.
+ *
+ * www_authenticate_header is used either way, depending on use on
+ * the server- or client side.
+ *
+ * hmac is used as a buffer to write HMAC signatures to. NOt sure if this is
+ * necessary, could probably be replaced by local buffer. Will depend on
+ * what happens, when we start implementing *writing* headers. FIXME
+ *
+ */
 struct HawkcContext {
 	HawkcMallocFunc malloc;
 	HawkcCallocFunc calloc;
 	HawkcFreeFunc free;
-	/** Hawkc error code */
 	HawkcError error;
-	/** Error message providing specific error condition details */
 	char error_string[1024];
-	/** Error code of underlying crypto library, or 0 if not applicable */
-	unsigned long crypto_error;
 
 	HawkcString method;
 	HawkcString path;
@@ -120,7 +146,7 @@ struct HawkcContext {
 
 	struct AuthorizationHeader header_in;
 	struct AuthorizationHeader header_out;
-	struct WwwAuthenticateHeader wwwAuthenticateHeader;
+	struct WwwAuthenticateHeader www_authenticate_header;
 
 	unsigned char hmac[MAX_HMAC_BYTES_B64];
 
@@ -163,14 +189,6 @@ char * HAWKCAPI hawkc_get_error(HawkcContext ctx);
  *
  */
 HawkcError HAWKCAPI hawkc_get_error_code(HawkcContext ctx);
-
-/** Get the error code reported by the underlying
- * crypto library. Returns the code or NO_CRYPTO_ERROR if not
- * applicable in a given error case.
- */
-unsigned long HAWKCAPI hawkc_get_crypto_error(HawkcContext ctx);
-
-
 
 
 /** The algorithms and options defined by hawkc.

@@ -77,6 +77,11 @@ cleantest:
 #all: $(LIB) $(HAWK)
 all: $(LIB) 
 
+install:
+	cp hawkc/hawkc.h /usr/local/include
+	cp hawkc/libhawkc.a /usr/local/lib
+	
+
 
 
 clean: cleantest

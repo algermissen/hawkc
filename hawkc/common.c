@@ -37,6 +37,8 @@ static char *error_strings[] = {
 		"Unknown algorithm", /* HAWKC_ERROR_UNKNOWN_ALGORITHM */
 		"Some unrecognized error in the crypto library occurred", /* HAWKC_CRYPTO_ERROR */
 		"Not a unix time value" , /* HAWKC_TIME_VALUE_ERROR */
+		"Unable to allocate memory", /* HAWKC_NO_MEM */
+		"Required buffer size is too large", /* HAWKC_REQUIRED_BUFFER_TOO_LARGE */
 		"Unspecific error", /* HAWKC_ERROR */
 		NULL
 };
@@ -46,23 +48,12 @@ char* hawkc_strerror(HawkcError e) {
 	return error_strings[e];
 }
 
-HawkcError hawkc_set_error(HawkcContext ctx, const char *file, int line,
-		unsigned long crypto_error, HawkcError e, const char *fmt, ...) {
+HawkcError hawkc_set_error(HawkcContext ctx, HawkcError e, const char *fmt, ...) {
 	va_list args;
-	char buf[256];
 	va_start(args, fmt);
 	vsnprintf(ctx->error_string, sizeof(ctx->error_string), fmt, args);
 	va_end(args);
-	if (crypto_error != NO_CRYPTO_ERROR) {
-		snprintf(buf, sizeof(buf), " in %s, line %d (internal error:%ld)", file,
-				line, crypto_error);
-	} else {
-		snprintf(buf, sizeof(buf), " in %s, line %d", file, line);
-	}
-	strncat(ctx->error_string, buf,
-			sizeof(ctx->error_string) - strlen(ctx->error_string) - 1);
 	ctx->error = e;
-	ctx->crypto_error = crypto_error;
 	return e;
 }
 
@@ -81,7 +72,7 @@ void hawkc_context_init(HawkcContext ctx) {
 	ctx->malloc = NULL;
 	ctx->calloc = NULL;
 	ctx->free = NULL;
-
+	ctx->error = HAWKC_OK;
 }
 
 
@@ -130,47 +121,63 @@ void hawkc_context_set_port(HawkcContext ctx,char *port, size_t len) {
 
 HawkcError hawkc_validate_hmac(HawkcContext ctx, HawkcAlgorithm algorithm, const unsigned char *password, int password_len,int *is_valid) {
 	HawkcError e;
-	int len,base_len;
-	unsigned char base_buf[1024];
-
+	int len,base_len,required_size;
+	unsigned char base_buf[BASE_BUFFER_SIZE];
+	unsigned char *base_buf_ptr = base_buf;
+	unsigned char *dyn_base_buf = NULL;
 
 	/*
-	 * FIXME: See https://github.com/algermissen/hawkc/issues/3
-	 *
-		if( (buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
-			assert(!"FIXME");
+	 * If the required size exceeds the static base string buffer, allocate
+	 * a temporary larger buffer. But only, if the allocation size stays
+	 * below HAWKC_REQUIRED_BUFFER_TOO_LARGE limit.
+	 */
+	required_size = hawkc_calculate_base_string_length(ctx,&(ctx->header_in));
+	if(required_size > sizeof(base_buf)) {
+		if(required_size > MAX_DYN_BASE_BUFFER_SIZE) {
+			return hawkc_set_error(ctx,
+					HAWKC_REQUIRED_BUFFER_TOO_LARGE, "Required base string buffer of %d bytes exceeds MAX_DYN_BASE_BUFFER_SIZE" , required_size);
 		}
-		*/
+		if( (dyn_base_buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
+			return hawkc_set_error(ctx,
+					HAWKC_NO_MEM, "Unable to allocate %d bytes for dynamic base buffer" , required_size);
+		}
+		base_buf_ptr = dyn_base_buf;
+	}
 
-	hawkc_create_base_string(ctx,&(ctx->header_in),base_buf,&base_len);
-
-	if( (e = hawkc_hmac(ctx, algorithm, password, password_len, base_buf, base_len,ctx->hmac,&len)) != HAWKC_OK) {
+	/*
+	 * Create base string and HMAC.
+	 */
+	hawkc_create_base_string(ctx,&(ctx->header_in),base_buf_ptr,&base_len);
+	e = hawkc_hmac(ctx, algorithm, password, password_len, base_buf_ptr, base_len,ctx->hmac,&len);
+	/*
+	 * Free dynamic buffer immediately when it is not needed anymore.
+	 */
+	if(dyn_base_buf != NULL) {
+		hawkc_free(ctx,dyn_base_buf);
+		/* Prevent dangling pointers */
+		dyn_base_buf = NULL;
+		base_buf_ptr = base_buf;
+	}
+	/*
+	 * If HMAC generation failed, report error.
+	 */
+	if(e != HAWKC_OK) {
 		return e;
 	}
-	/* FIXME
+
+	/* FIXME - Remove debug code
 	fprintf(stderr,"calculated: {%.*s}",len, ctx->hmac);
 	fprintf(stderr,"got:        {%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
 	*/
 
-	if( ctx->header_in.mac.len != len) {
-		*is_valid = 0;
-		return HAWKC_OK;
-	}
-	/* FIXME
-	printf("{%.*s}",len, ctx->hmac);
-	printf("{%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
-	*/
-
-
-	if(!hawkc_fixed_time_equal((unsigned char*)ctx->header_in.mac.data,ctx->hmac,len)) {
-		*is_valid = 0;
-		return HAWKC_OK;
-	}
 	/*
-	printf("{%.*s}",len, ctx->hmac);
-	printf("{%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
-	*/
-	*is_valid = 1;
+	 * Compare HMACs
+	 */
+	if(ctx->header_in.mac.len == len && hawkc_fixed_time_equal((unsigned char*)ctx->header_in.mac.data,ctx->hmac,len)) {
+		*is_valid = 1;
+	} else {
+		*is_valid = 0;
+	}
 	return HAWKC_OK;
 }
 

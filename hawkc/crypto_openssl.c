@@ -25,10 +25,8 @@ HawkcError hawkc_hmac(HawkcContext ctx, HawkcAlgorithm algorithm,
 	} else if (strcmp(algorithm->name, HAWKC_SHA_256->name) == 0) {
 		md = EVP_sha256();
 	} else {
-		return hawkc_set_error(ctx, __FILE__, __LINE__, NO_CRYPTO_ERROR,
-				HAWKC_ERROR_UNKNOWN_ALGORITHM,
-	    		"Algorithm %s not recognized for HMAC calculation",
-	    		algorithm->name);
+		return hawkc_set_error(ctx, HAWKC_ERROR_UNKNOWN_ALGORITHM,
+				"Algorithm %s not recognized for HMAC calculation", algorithm->name);
 	}
 	HMAC_CTX_init(&md_ctx);
 	HMAC_Init(&md_ctx, password, password_len, md);
@@ -45,6 +43,7 @@ HawkcError hawkc_hmac(HawkcContext ctx, HawkcAlgorithm algorithm,
 
 
 #if 0
+FIXME: These are kept for reference, for example, how to popolate the TS-WWW-Authenticate variant
 in hawk
 FIXME: remove these notes
 var hmac = Crypto.createHmac(credentials.algorithm, credentials.key).update(normalized);

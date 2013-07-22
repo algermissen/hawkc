@@ -22,22 +22,29 @@ struct HawkcAlgorithm {
 	const char* name;
 };
 
-/** A macro to calculate byte size from number of bits.
+/*
+ * Size of the static base string buffer used to generate HMACs.
+ * This value should be large enough to hold Hawk base strings
+ * containing URLs of common sizes.
  *
+ * For occasional larger sizes hawkc will dynamically allocate
+ * and free a larger buffer. See MAX_DYN_BASE_BUFFER_SIZE.
  */
-#define NBYTES(bits) (ceil((double) (bits) / 8) )
+#define BASE_BUFFER_SIZE 512
 
-/**
- * Mocro used to supply a value for cases where an error is a hawkc-level
- * error and not one of the underlying crypto library.
- *
+/*
+ * In the case of base strings that exceed the static BASE_BUFFER_SIZE hawkc
+ * will dynamically allocate a buffer to hold the base string. In order to
+ * prevent very long URLs (possibly attacks) from leading to very large allocations
+ * MAX_DYN_BASE_BUFFER_SIZE sets the upper bounds of dynamic allocation.
  */
-#define NO_CRYPTO_ERROR 0
+#define MAX_DYN_BASE_BUFFER_SIZE 2048
+
 
 /**
  * Set the context error for error retrieval by the caller.
  */
-HawkcError HAWKCAPI hawkc_set_error(HawkcContext ctx, const char *file, int line, unsigned long crypto_error,HawkcError e, const char *fmt, ...);
+HawkcError HAWKCAPI hawkc_set_error(HawkcContext ctx, HawkcError e, const char *fmt, ...);
 
 /* Calculate the length of the Hawk header base string used for HMAC generation
  *
