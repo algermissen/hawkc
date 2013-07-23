@@ -1,3 +1,4 @@
+#include <string.h>
 #include "hawkc.h"
 #include "common.h"
 #include "test.h"
