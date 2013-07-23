@@ -80,7 +80,7 @@ int test_scheme_only() {
 	e = hawkc_parse_auth_header(&ctx,"Hawk a=b, c=, ",14,scheme_handler, param_handler,NULL);
 	EXPECT_RETVAL(HAWKC_PARSE_ERROR,e,&ctx);
 
-	return 1;
+	return 0;
 }
 
 int test_quoted_string() {
@@ -136,7 +136,7 @@ int test_quoted_string() {
 	EXPECT_STR_EQUAL("Hawk",scheme_buf);
 	EXPECT_STR_EQUAL("<a:b><c:d>",buf);
 
-	return 1;
+	return 0;
 }
 
 int main(int argc, char **argv) {

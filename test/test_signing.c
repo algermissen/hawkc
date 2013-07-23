@@ -46,7 +46,7 @@ int test_signing() {
 	hawkc_validate_hmac(&ctx, HAWKC_SHA_1, "test", 4,&is_valid);
 	EXPECT_TRUE(is_valid);
 
-	return 1;
+	return 0;
 }
 int test_signing_iron() {
 
@@ -87,7 +87,7 @@ int test_signing_iron() {
 	hawkc_validate_hmac(&ctx, HAWKC_SHA_256, "w7*0T6C.0b4C#", 13,&is_valid);
 	EXPECT_TRUE(is_valid);
 
-	return 1;
+	return 0;
 }
 
 /*
@@ -137,7 +137,7 @@ int test_hawk_capatibility() {
 
 
 
-	return 1;
+	return 0;
 }
 
 /*
@@ -185,7 +185,7 @@ int test_hawk_capatibility2() {
 
 
 
-	return 1;
+	return 0;
 }
 
 

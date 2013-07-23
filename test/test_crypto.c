@@ -22,7 +22,7 @@ int test_hmac() {
 	EXPECT_INT_EQUAL(len,len2);
 	EXPECT_BYTE_EQUAL(buf,buf2,len);
 
-	return 1;
+	return 0;
 }
 
 

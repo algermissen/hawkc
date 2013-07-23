@@ -24,7 +24,7 @@ int test_parse() {
 	*/
 
 
-	return 1;
+	return 0;
 }
 
 

@@ -59,8 +59,9 @@ int test_base64url_encodes_correctly() {
 	hawkc_base64url_encode(b7, 31, chars, &len);
 	EXPECT_BYTE_EQUAL((unsigned char *)"PgECAwQFBgd4PD0_QSwVFhcYHh8gLVxdXl9QUVJTVA", chars,42);
 
-	return 1;
+	return 0;
 }
+
 /*
 
  Test vectors from http://www.ietf.org/rfc/rfc4648.txt section 10.
@@ -125,7 +126,7 @@ int test_base64url_decodes_correctly() {
 	EXPECT_TRUE(len == 31);
 	EXPECT_BYTE_EQUAL(b7, bytes, 31);
 
-	return 1;
+	return 0;
 }
 
 int main(int argc, char **argv) {
