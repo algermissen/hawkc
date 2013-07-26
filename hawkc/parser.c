@@ -17,10 +17,27 @@
 
 #define IS_SPACE(c) ( ((c) == ' ') || ((c) == '\t') )
 
+
 static void consume_ows(HawkcContext ctx, char *s, size_t len, size_t *n);
 static HawkcError parse_token(HawkcContext ctx, char *s, size_t len, HawkcString *ptoken, size_t *n);
 static HawkcError parse_quoted_text(HawkcContext ctx, char *s, size_t len, HawkcString *ptoken, size_t *n);
 static HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp);
+
+static int my_digittoint(char ch) {
+  int d = ch - '0';
+  if ((unsigned) d < 10) {
+    return d;
+  }
+  d = ch - 'a';
+  if ((unsigned) d < 6) {
+    return d + 10;
+  }
+  d = ch - 'A';
+  if ((unsigned) d < 6) {
+    return d + 10;
+  }
+  return -1;
+}
 
 /*
  * Scheme callback for parsing authorization header.
@@ -74,11 +91,12 @@ HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
 	time_t t = 0;
 	int i = 0;
 	while(i < ts.len) {
+		char c;
 		if(!isdigit(*p)) {
 			return hawkc_set_error(ctx,
 					HAWKC_TIME_VALUE_ERROR, "'%.*s' is not a valid integer" , ts.len,ts.data);
 		}
-		t = (t * 10) + digittoint(*p);
+		t = (t * 10) + my_digittoint(*p);
 
 		i++;
 		p++;
