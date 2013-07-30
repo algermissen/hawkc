@@ -20,8 +20,8 @@ int test_hmac() {
 	e = hawkc_hmac(&ctx, HAWKC_SHA_256,(unsigned char *)"test",4,(unsigned char *)"Das ist die Message",19,buf2,&len2);
 	EXPECT_RETVAL(HAWKC_OK,e,&ctx);
 
-	EXPECT_INT_EQUAL(len,len2);
-	EXPECT_BYTE_EQUAL(buf,buf2,len);
+	EXPECT_INT_EQUAL((int)len,(int)len2);
+	EXPECT_BYTE_EQUAL(buf,buf2,(int)len);
 
 
 

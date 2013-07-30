@@ -9,7 +9,7 @@ int test_parse() {
 
 	char *h1 = "Hawk";
 
-	e = hawkc_parse_www_authenticate_header(&ctx,h1,strlen(h1));
+	e = hawkc_parse_www_authenticate_header(&ctx,(unsigned char*)h1,strlen(h1));
 	EXPECT_RETVAL(HAWKC_OK,e,&ctx);
 
 /*
