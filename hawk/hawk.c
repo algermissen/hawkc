@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
 	int output_buffer_len;
 	*/
 
-	unsigned char buffer[BUF_SIZE];
+	unsigned char *buffer;
 	size_t len, required_len;
 
 
@@ -135,10 +135,16 @@ int main(int argc, char **argv) {
 		exit(2);
 	}
 
+	if( (buffer = (unsigned char *)hawkc_malloc(&ctx,required_len)) == NULL) {
+		fprintf(stderr,"Unable to allocate %d bytes, %s" , (int)required_len, hawkc_get_error(&ctx));
+		exit(3);
+
+	}
+
 
 	if( (e = hawkc_create_authorization_header(&ctx,buffer,&len)) != HAWKC_OK) {
 		fprintf(stderr,"Error creating header: %s" , hawkc_get_error(&ctx));
-		exit(3);
+		exit(4);
 	}
 /*
 	fprintf(stdout, "req=%d, actual=%d\n" , required_len, len);
@@ -147,6 +153,8 @@ int main(int argc, char **argv) {
 	fprintf(stdout, "curl -v http://%s:%s%s -H 'Authorization: %.*s'\n",
 			host,port,path,
 			(int)len,buffer);
+
+	hawkc_free(&ctx,buffer);
 
 	return 0;
 }
