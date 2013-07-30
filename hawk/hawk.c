@@ -4,69 +4,90 @@
 #include <string.h>
 
 /* ciron.h is the only header file you need to include. */
-#include "ciron.h"
+#include "hawkc.h"
 
 #define BUF_SIZE 1024
-
-typedef enum mode {
-	SEAL, UNSEAL
-} seal_t;
 
 void usage(void);
 void help(void);
 
-/*
- * A note on memory allocation: For improved code clarity, we do not
- * free up any allocated memory before exiting, although it would
- * be good practice to do so.
- */
+static char *GET = "GET";
+static char *PORT80 = "80";
+
+static char *mystrdup(const char *in, const char *fieldname) {
+	char *p;
+	if( (p = malloc(strlen(in)+1)) == NULL) {
+		fprintf(stderr,"Unable to allocate for %s\n" , fieldname);
+		exit(1);
+	}
+	strcpy(p, optarg);
+	return p;
+}
+
 int main(int argc, char **argv) {
 
+	HawkcError e;
+	struct HawkcContext ctx;
 	int verbose = 0;
-	unsigned char *password = NULL;
-	int password_len = 0;
+	char *id = NULL;
+	char *password = NULL;
+	char *method = NULL;
+	char *host = NULL;
+	char *port = NULL;
+	char *path = NULL;
+	char *ext = NULL;
 
+	HawkcAlgorithm algorithm = NULL;
+
+	/*
 	unsigned char *input;
 	int input_len = 1;
 	unsigned char *encryption_buffer;
 	unsigned char *output_buffer;
 	int encryption_buffer_len;
 	int output_buffer_len;
-	int output_len;
+	*/
 
 	unsigned char buffer[BUF_SIZE];
+	size_t len;
+
 
 	int option;
-	seal_t mode = SEAL;
+	/*
 	Options encryption_options = DEFAULT_ENCRYPTION_OPTIONS;
 	Options integrity_options = DEFAULT_INTEGRITY_OPTIONS;
-
 	struct CironContext ctx;
+	*/
+
+	hawkc_context_init(&ctx);
 
 
 	opterr = 0;
 
-	while ((option = getopt(argc, argv, "-hvsup:")) != EOF) {
+	while ((option = getopt(argc, argv, "-i:p:M:H:O:P:e:a:o:hv")) != EOF) {
 		switch (option) {
+		case 'i': id = mystrdup(optarg,"id"); break;
+		case 'p': password = mystrdup(optarg,"password"); break;
+		case 'M': method = mystrdup(optarg,"method"); break;
+		case 'H': host = mystrdup(optarg,"host"); break;
+		case 'O': port = mystrdup(optarg,"port"); break;
+		case 'P': path = mystrdup(optarg,"path"); break;
+		case 'e': ext = mystrdup(optarg,"ext"); break;
+		case 'o': {
+			int offset = (int)strtol(optarg, (char **)NULL, 10);
+			hawkc_context_set_clock_offset(&ctx,offset);
+			break; }
+		case 'a':
+			if( (algorithm = hawkc_algorithm_by_name(optarg,strlen(optarg))) == NULL) {
+				fprintf(stderr,"Algorithm not known: %s",optarg);
+				exit(4);
+			}
+			break;
 		case 'h':
 			help();
 			exit(0);
 		case 'v':
 			verbose = 1;
-			break;
-		case 's':
-			mode = SEAL;
-			break;
-		case 'u':
-			mode = UNSEAL;
-			break;
-		case 'p':
-			password_len = strlen(optarg);
-			if( (password = malloc(password_len)) == NULL) {
-				perror("Unable to allocate password");
-				exit(1);
-			}
-			strcpy((char*)password, optarg);
 			break;
 		case '?':
 			usage();
@@ -74,132 +95,82 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	if(verbose) {
-		fprintf(stderr,"Running in %s mode\n", (mode == SEAL) ? "SEAL" : "UNSEAL");
+	if (id == NULL) {
+		usage();
+		exit(2);
 	}
-
 	if (password == NULL) {
 		usage();
 		exit(2);
 	}
 
-	if ((input = malloc(sizeof(char) * BUF_SIZE)) == NULL ) {
-		perror("Failed to allocate input buffer");
-		exit(3);
+	if(host == NULL) {
+		usage();
+		exit(1);
+	}
+	if(path == NULL) {
+		usage();
+		exit(1);
 	}
 
-	/* Read all input at once */
-	input[0] = '\0';
-	while (fgets((char *)buffer, sizeof(buffer), stdin)) {
-		input_len += strlen((char*)buffer);
-		if ((input = realloc(input, input_len)) == NULL ) {
-			perror("Failed to reallocate input buffer");
-			exit(4);
-		}
-		strcat((char*)input, (char*)buffer);
-	}
-	if(verbose) {
-		fprintf(stderr,"Read %d bytes of input\n", input_len);
-	}
-	/* Input len includes the \0 and we do not want to seal that */
-	input_len--;
-
-	/*
-	 * seal() and unseal() require the caller to allocate a buffer for storing the
-	 * binary encryption data, before it is base64url encoded into the result
-	 * string. ciron provides a function to calculate the buffer size from the
-	 * input data size.
-	 */
-	encryption_buffer_len = calculate_encryption_buffer_length(encryption_options, input_len);
-	if( (encryption_buffer = malloc(encryption_buffer_len)) == NULL) {
-		perror("Unable to allocate encryption buffer");
-		exit(5);
+	if(algorithm == NULL) {
+		algorithm = HAWKC_SHA_1;
 	}
 
-	if(verbose) {
-		fprintf(stderr,"Allocated %d bytes for encryption buffer\n", encryption_buffer_len);
+	if(method == NULL) {
+		method = GET;
+	}
+	if(port == NULL) {
+		port = PORT80;
+	}
+
+	hawkc_context_set_algorithm(&ctx,algorithm);
+	hawkc_context_set_password(&ctx,(unsigned char*)password, strlen(password));
+
+	hawkc_context_set_method(&ctx,(unsigned char*)method, strlen(method));
+	hawkc_context_set_path(&ctx,(unsigned char *)path, strlen(path));
+	hawkc_context_set_host(&ctx,(unsigned char *)host,strlen(host));
+	hawkc_context_set_port(&ctx,(unsigned char *)port,strlen(port));
+
+	hawkc_context_set_id(&ctx,(unsigned char *)id,strlen(id));
+	hawkc_context_set_port(&ctx,(unsigned char *)ext,strlen(ext));
+
+
+	if( (e = hawkc_create_authorization_header(&ctx,buffer,&len)) != HAWKC_OK) {
+		fprintf(stderr,"Error creating header: %s" , hawkc_get_error(&ctx));
+		exit(2);
 	}
 
 
-	/*
-	 * seal() and unseal() require the caller to allocate a buffer for storing the
-	 * result. ciron provides a function to calculate the buffer size from the
-	 * input data size.
-	 */
-	if (mode == SEAL) {
-		/* We add 1 byte because we want to \0-terminate the buffer */
-		output_buffer_len = calculate_seal_buffer_length(encryption_options, integrity_options, input_len) + 1;
-	} else {
-		/* We add 1 byte because we want to \0-terminate the buffer */
-		output_buffer_len = calculate_unseal_buffer_length(encryption_options, integrity_options, input_len) + 1;
-	}
-	if(verbose) {
-			fprintf(stderr,"Will allocate %d bytes for output buffer\n", output_buffer_len);
-	}
-
-	if( (output_buffer = malloc(output_buffer_len)) == NULL) {
-		perror("Unable to allocate output buffer");
-		exit(6);
-	}
-
-	if(verbose) {
-		fprintf(stderr,"Allocated %d bytes for output buffer\n", output_buffer_len);
-	}
-
-	if (mode == SEAL) {
-		/*
-		fprintf(stderr, "%s", password);
-		*/
-		if( (ciron_seal(&ctx,input, input_len, password, password_len,
-				encryption_options, integrity_options, encryption_buffer,
-				output_buffer, &output_len)) != CIRON_OK) {
-			fprintf(stderr,"Unable to seal: %s\n" , ciron_get_error(&ctx));
-			exit(8);
-		}
-	} else {
-		CironError e;
-		/*
-		fprintf(stderr, "(%s)", input);
-		*/
-		if( (e =ciron_unseal(&ctx,input, input_len, password, password_len,
-				encryption_options, integrity_options, encryption_buffer,
-				output_buffer, &output_len)) != CIRON_OK) {
-			if(e == CIRON_TOKEN_PARSE_ERROR) {
-				fprintf(stderr,"Invalid token format, %s\n" , ciron_get_error(&ctx));
-				exit(7);
-			}
-			fprintf(stderr,"Unable to unseal: %s\n" , ciron_get_error(&ctx));
-			exit(8);
-
-		}
-	}
-	if(verbose) {
-		fprintf(stderr,"%s produced %d bytes of output\n", (mode == SEAL) ? "Sealing" : "Unsealing" , output_len);
-	}
-	output_buffer[output_len] = '\0';
-
-	fprintf(stdout, "%s", output_buffer);
-
+	fprintf(stdout, "curl -v http://%s:%s%s -H 'Authorization: %.*s'\n",
+			host,port,path,
+			(int)len,buffer);
 
 	return 0;
 }
 
 void usage(void) {
-	printf("Usage: iron [-hvsu] -p <password>\n");
+	printf("Usage: hawk -i <id> -p <password> -H <host> -P <path> [-M <method>] [-O port] [-a <algorithm>] [-e <ext>] [-o <offset>] [-hv]\n");
 }
 
 void help(void) {
 	printf("\n");
-	printf("iron - Sealing and unsealing encapulated tokens\n\n");
-	printf("Reads UTF-8 encoded string from STDIN and seals or unseals the input to STDOUT\n\n");
+	printf("hawk - Generating curl commandline invocations from request data and Hawk parameters\n\n");
+	printf(" \n");
 
 	usage();
 
 	printf("Options:\n");
-	printf("    -h               show this screen\n");
-	printf("    -v               verbose mode to print some diagnostic messages\n");
-	printf("    -p <password>    password to use for sealing/unsealing\n");
-	printf("    -s               seal the input (this is the default)\n");
-	printf("    -u               unseal the input\n");
+	printf("    -h               Show this screen\n");
+	printf("    -v               Verbose mode to print some diagnostic messages\n");
+	printf("    -p <password>    Password to use for sealing/unsealing\n");
+	printf("    -i <id>          Id to put in 'id' header parameter\n");
+	printf("    -H <host>        Host to use for request\n");
+	printf("    -P <path>        URI path to use for request\n");
+	printf("    -M <method>      HTTP method to use; defaults to 'GET'\n");
+	printf("    -O <port>        Port to use for request; defaults to '80'\n");
+	printf("    -a <algorithm>   Algorithm to use for HMAC generation; defaults to sha1\n");
+	printf("    -e <ext>         Arbitrary string to put into 'ext' header parameter\n");
+	printf("    -o <offset>      Number of seconds to use for clock offset\n");
 	printf("\n");
 }

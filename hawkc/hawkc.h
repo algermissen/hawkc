@@ -44,7 +44,11 @@ extern "C" {
 #define MAX_HMAC_BYTES 32
 
 /* 32/3 * 4 */
-#define MAX_HMAC_BYTES_B64 40
+#define MAX_HMAC_BYTES_B64 44
+
+/* FIXME docs */
+#define MAX_NONCE_BYTES 6
+#define MAX_NONCE_HEX_BYTES 12
 
 /**
  * Hawkc mostly uses strings that are not null terminated but are associated with a length
@@ -52,7 +56,7 @@ extern "C" {
  */
 typedef struct HawkcString {
 	size_t len;
-	char *data;
+	unsigned char *data;
 } HawkcString;
 
 /** hawkc error codes
@@ -112,8 +116,8 @@ typedef struct AuthorizationHeader {
  * well as for constructing header data before creating a string representation.
  */
 typedef struct WwwAuthenticateHeader {
-	HawkcString id;
 	time_t ts;
+	HawkcString tsm;
 } *WwwAuthenticateHeader;
 
 /* The global Hawkc context.
@@ -138,6 +142,10 @@ struct HawkcContext {
 	HawkcFreeFunc free;
 	HawkcError error;
 	char error_string[1024];
+	int offset;
+
+	HawkcAlgorithm algorithm;
+	HawkcString password;
 
 	HawkcString method;
 	HawkcString path;
@@ -149,29 +157,50 @@ struct HawkcContext {
 	struct WwwAuthenticateHeader www_authenticate_header;
 
 	unsigned char hmac[MAX_HMAC_BYTES_B64];
+	unsigned char ts_hmac[MAX_HMAC_BYTES_B64];
+	unsigned char nonce[MAX_NONCE_HEX_BYTES];
 
 };
 
 
 HAWKCAPI void hawkc_context_init(HawkcContext ctx);
+
+HAWKCAPI void hawkc_context_set_clock_offset(HawkcContext ctx,int offset);
+
 HAWKCAPI void* hawkc_malloc(HawkcContext ctx, size_t size);
 HAWKCAPI void* hawkc_calloc(HawkcContext ctx, size_t count, size_t size);
 HAWKCAPI void hawkc_free(HawkcContext ctx, void *ptr);
 
-HAWKCAPI void hawkc_context_set_method(HawkcContext ctx,char *method, size_t len);
-HAWKCAPI void hawkc_context_set_path(HawkcContext ctx,char *path, size_t len);
-HAWKCAPI void hawkc_context_set_host(HawkcContext ctx,char *host, size_t len);
-HAWKCAPI void hawkc_context_set_port(HawkcContext ctx,char *port, size_t len);
+HAWKCAPI void hawkc_context_set_password(HawkcContext ctx,unsigned char *password, size_t len);
+HAWKCAPI void hawkc_context_set_algorithm(HawkcContext ctx,HawkcAlgorithm algorithm);
 
-HAWKCAPI HawkcError hawkc_parse_authorization_header(HawkcContext ctx, char *value, size_t len);
-HAWKCAPI HawkcError hawkc_validate_hmac(HawkcContext ctx, HawkcAlgorithm algorithm, const unsigned char *password, int password_len,int *is_valid);
+HAWKCAPI void hawkc_context_set_method(HawkcContext ctx,unsigned char *method, size_t len);
+HAWKCAPI void hawkc_context_set_path(HawkcContext ctx,unsigned char *path, size_t len);
+HAWKCAPI void hawkc_context_set_host(HawkcContext ctx,unsigned char *host, size_t len);
+HAWKCAPI void hawkc_context_set_port(HawkcContext ctx,unsigned char *port, size_t len);
+
+HAWKCAPI void hawkc_context_set_id(HawkcContext ctx,unsigned char *id, size_t len);
+HAWKCAPI void hawkc_context_set_ext(HawkcContext ctx,unsigned char *ext, size_t len);
+
+
+HAWKCAPI HawkcError hawkc_parse_authorization_header(HawkcContext ctx, unsigned char *value, size_t len);
+HAWKCAPI HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* buf, size_t *len);
+HAWKCAPI HawkcError hawkc_validate_hmac(HawkcContext ctx, int *is_valid);
+
+HAWKCAPI HawkcError hawkc_parse_www_authenticate_header(HawkcContext ctx, unsigned char *value, size_t len);
+HAWKCAPI HawkcError hawkc_calculate_www_authenticate_header_length(HawkcContext ctx, size_t *required_len);
+HAWKCAPI HawkcError hawkc_create_www_authenticate_header(HawkcContext ctx, unsigned char* buf, size_t *len);
+
+HAWKCAPI void hawkc_www_authenticate_header_set_ts(HawkcContext ctx, time_t ts);
+
+
 
 
 /** Obtain HMAC algorithm for specified name.
  *
  * Returns the algorithm or NULL if not found.
  */
-HAWKCAPI HawkcAlgorithm hawkc_algorithm_by_name(char *name, int len);
+HAWKCAPI HawkcAlgorithm hawkc_algorithm_by_name(char *name, size_t len);
 
 /** Obtain human readable string for the provided error code.
  *

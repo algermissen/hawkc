@@ -7,10 +7,6 @@
 #include "common.h"
 #include "crypto.h"
 
-static const char *HAWK_HEADER_PREFIX = "hawk.1.header";
-static const char LF = '\n';
-
-
 /**
  * Algorithms provided by hawkc.
  *
@@ -75,7 +71,6 @@ void hawkc_context_init(HawkcContext ctx) {
 	ctx->error = HAWKC_OK;
 }
 
-
 void* hawkc_malloc(HawkcContext ctx, size_t size) {
 	if(ctx->malloc == NULL) {
 		return malloc(size);
@@ -98,90 +93,54 @@ void hawkc_free(HawkcContext ctx, void *ptr) {
 }
 
 
+void hawkc_context_set_clock_offset(HawkcContext ctx,int offset) {
+	ctx->offset = offset;
+}
 
-void hawkc_context_set_method(HawkcContext ctx,char *method, size_t len) {
+void hawkc_context_set_password(HawkcContext ctx,unsigned char *password, size_t len) {
+	ctx->password.data = password;
+	ctx->password.len = len;
+}
+
+void hawkc_context_set_algorithm(HawkcContext ctx,HawkcAlgorithm algorithm) {
+	ctx->algorithm = algorithm;
+}
+
+void hawkc_context_set_id(HawkcContext ctx,unsigned char *id, size_t len) {
+	ctx->header_out.id.data = id;
+	ctx->header_out.id.len = len;
+}
+
+void hawkc_context_set_ext(HawkcContext ctx,unsigned char *ext, size_t len) {
+	ctx->header_out.ext.data = ext;
+	ctx->header_out.ext.len = len;
+}
+
+
+
+
+void hawkc_context_set_method(HawkcContext ctx,unsigned char *method, size_t len) {
 	ctx->method.data = method;
 	ctx->method.len = len;
 }
-void hawkc_context_set_path(HawkcContext ctx,char *path, size_t len) {
+void hawkc_context_set_path(HawkcContext ctx,unsigned char *path, size_t len) {
 	ctx->path.data = path;
 	ctx->path.len = len;
 
 }
-void hawkc_context_set_host(HawkcContext ctx,char *host, size_t len) {
+void hawkc_context_set_host(HawkcContext ctx,unsigned char *host, size_t len) {
 	ctx->host.data = host;
 	ctx->host.len = len;
 
 }
-void hawkc_context_set_port(HawkcContext ctx,char *port, size_t len) {
+void hawkc_context_set_port(HawkcContext ctx,unsigned char *port, size_t len) {
 	ctx->port.data = port;
 	ctx->port.len = len;
 
 }
 
-HawkcError hawkc_validate_hmac(HawkcContext ctx, HawkcAlgorithm algorithm, const unsigned char *password, int password_len,int *is_valid) {
-	HawkcError e;
-	int len,base_len,required_size;
-	unsigned char base_buf[BASE_BUFFER_SIZE];
-	unsigned char *base_buf_ptr = base_buf;
-	unsigned char *dyn_base_buf = NULL;
 
-	/*
-	 * If the required size exceeds the static base string buffer, allocate
-	 * a temporary larger buffer. But only, if the allocation size stays
-	 * below HAWKC_REQUIRED_BUFFER_TOO_LARGE limit.
-	 */
-	required_size = hawkc_calculate_base_string_length(ctx,&(ctx->header_in));
-	if(required_size > sizeof(base_buf)) {
-		if(required_size > MAX_DYN_BASE_BUFFER_SIZE) {
-			return hawkc_set_error(ctx,
-					HAWKC_REQUIRED_BUFFER_TOO_LARGE, "Required base string buffer of %d bytes exceeds MAX_DYN_BASE_BUFFER_SIZE" , required_size);
-		}
-		if( (dyn_base_buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
-			return hawkc_set_error(ctx,
-					HAWKC_NO_MEM, "Unable to allocate %d bytes for dynamic base buffer" , required_size);
-		}
-		base_buf_ptr = dyn_base_buf;
-	}
-
-	/*
-	 * Create base string and HMAC.
-	 */
-	hawkc_create_base_string(ctx,&(ctx->header_in),base_buf_ptr,&base_len);
-	e = hawkc_hmac(ctx, algorithm, password, password_len, base_buf_ptr, base_len,ctx->hmac,&len);
-	/*
-	 * Free dynamic buffer immediately when it is not needed anymore.
-	 */
-	if(dyn_base_buf != NULL) {
-		hawkc_free(ctx,dyn_base_buf);
-		/* Prevent dangling pointers */
-		dyn_base_buf = NULL;
-		base_buf_ptr = base_buf;
-	}
-	/*
-	 * If HMAC generation failed, report error.
-	 */
-	if(e != HAWKC_OK) {
-		return e;
-	}
-
-	/* FIXME - Remove debug code
-	fprintf(stderr,"calculated: {%.*s}",len, ctx->hmac);
-	fprintf(stderr,"got:        {%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
-	*/
-
-	/*
-	 * Compare HMACs
-	 */
-	if(ctx->header_in.mac.len == len && hawkc_fixed_time_equal((unsigned char*)ctx->header_in.mac.data,ctx->hmac,len)) {
-		*is_valid = 1;
-	} else {
-		*is_valid = 0;
-	}
-	return HAWKC_OK;
-}
-
-HawkcAlgorithm hawkc_algorithm_by_name(char *name, int len) {
+HawkcAlgorithm hawkc_algorithm_by_name(char *name, size_t len) {
 	if (len == strlen(HAWKC_SHA_1->name) && strncmp(name, HAWKC_SHA_1->name, len) == 0) {
 		return HAWKC_SHA_1;
 	} else if (len == strlen(HAWKC_SHA_256->name) && strncmp(name, HAWKC_SHA_256->name, len) == 0) {
@@ -192,87 +151,80 @@ HawkcAlgorithm hawkc_algorithm_by_name(char *name, int len) {
 }
 
 
-/* internal */
-size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader header) {
-
-	size_t n = 0;
-	n += strlen(HAWK_HEADER_PREFIX);
-	n++;
-	n += 10; /* UNIX timestamp is 10 chars max. */
-	n++;
-	n += header->nonce.len;
-	n++;
-	n += ctx->method.len;
-	n++;
-	n += ctx->path.len;
-	n++;
-	n += ctx->host.len;
-	n++;
-	n += ctx->port.len;
-	n++;
-
-	n++; /* empty body hash See https://github.com/algermissen/hawkc/issues/1 */
-
-	n += header->ext.len;
-	n++;
-	return n;
-}
-
-void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsigned char* buf, int *len) {
-	char *ptr;
-	int n;
-	ptr = (char*)buf;
-
-	strncpy(ptr,HAWK_HEADER_PREFIX,strlen(HAWK_HEADER_PREFIX));
-	ptr += strlen(HAWK_HEADER_PREFIX);
-	*ptr = LF; ptr++;
-
-	n = sprintf(ptr,"%ld",header->ts); ptr += n;
-	*ptr = LF; ptr++;
-
-	strncpy(ptr,header->nonce.data,header->nonce.len);
-	ptr += header->nonce.len;
-	*ptr = LF; ptr++;
-
-	strncpy(ptr,ctx->method.data,ctx->method.len);
-	ptr += ctx->method.len;
-	*ptr = LF; ptr++;
-
-	strncpy(ptr,ctx->path.data,ctx->path.len);
-	ptr += ctx->path.len;
-	*ptr = LF; ptr++;
-
-	strncpy(ptr,ctx->host.data,ctx->host.len);
-	ptr += ctx->host.len;
-	*ptr = LF; ptr++;
-
-	strncpy(ptr,ctx->port.data,ctx->port.len);
-	ptr += ctx->port.len;
-	*ptr = LF; ptr++;
-
-	/* empty body hash FIXME */
-	*ptr = LF; ptr++;
-
-	strncpy(ptr,header->ext.data,header->ext.len);
-	ptr += header->ext.len;
-	*ptr = LF; ptr++;
-
-	*len = ptr - (char*)buf;
-	/* FIXME
-	fprintf(stderr,"\n---------------------------\n%.*s\n---------------------------\n" , *len , buf);
-	*/
-}
 
 
-int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, int len) {
-
+int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, size_t len) {
 	int equal = 1;
-	int i;
-	for(i = 0; i<len;i++) {
+	size_t i;
+	/* FIXME: try to remove casts */
+	for(i = 0; (int)i<(int)len;i++) {
 		if(lhs[i] != rhs[i]) {
 			equal = 0;
 		}
 	}
-
 	return equal;
 }
+
+
+
+/* Lookup 'table' for hex encoding */
+static const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+		'a', 'b', 'c', 'd', 'e', 'f' };
+void hawkc_bytes_to_hex(const unsigned char *bytes, size_t len, unsigned char *buf) {
+	size_t j;
+	for (j = 0; j < len; j++) {
+		int v;
+		v = bytes[j] & 0xFF;
+		buf[j * 2] = hex[v >> 4];
+		buf[j * 2 + 1] = hex[v & 0x0F];
+	}
+}
+
+/* FIXME: try to change to size_t */
+unsigned int hawkc_number_of_digits(time_t t) {
+	unsigned int count=0;
+	while(t!=0) {
+		t/=10;
+		++count;
+	}
+	return count;
+}
+
+
+HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
+	unsigned char *p = ts.data;
+	time_t t = 0;
+	int i = 0;
+	while(i < ts.len) {
+		if(!isdigit(*p)) {
+			return hawkc_set_error(ctx,
+					HAWKC_TIME_VALUE_ERROR, "'%.*s' is not a valid integer" , ts.len,ts.data);
+		}
+		t = (t * 10) + my_digittoint(*p);
+
+		i++;
+		p++;
+	}
+
+	*tp = t;
+	return HAWKC_OK;
+}
+
+
+int my_digittoint(char ch) {
+  int d = ch - '0';
+  if ((unsigned) d < 10) {
+    return d;
+  }
+  d = ch - 'a';
+  if ((unsigned) d < 6) {
+    return d + 10;
+  }
+  d = ch - 'A';
+  if ((unsigned) d < 6) {
+    return d + 10;
+  }
+  return -1;
+}
+
+

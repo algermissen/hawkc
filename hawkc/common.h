@@ -40,6 +40,14 @@ struct HawkcAlgorithm {
  */
 #define MAX_DYN_BASE_BUFFER_SIZE 2048
 
+/*
+ * Size for timestamp base string buffers. Buffer must be
+ * large enough to hold the following string:
+ * hawk.1.ts\n1375085388\n (21 bytes).
+ *
+ * We add a little space and make it 30.
+ */
+#define TS_BASE_BUFFER_SIZE 30
 
 /**
  * Set the context error for error retrieval by the caller.
@@ -55,7 +63,14 @@ size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader 
 /** Create Hawk header base string to be used for HMAC generation.
  *
  */
-void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsigned char* base_buf, int *base_len);
+void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsigned char* base_buf, size_t *base_len);
+
+/** Create Hawk header timestamp base string to be used for HMAC generation in WWW-Authenticate response
+ * headers.
+ *
+ */
+void hawkc_create_ts_base_string(HawkcContext ctx, WwwAuthenticateHeader header, unsigned char* buf, size_t *len);
+
 
 /** Parse an Authorization or WWW-Authenticate header.
  *
@@ -72,13 +87,46 @@ void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsi
  * Caveat: This means that extracted quoted strings will contain the escape characters. It is
  * the responsibility of the caller to make a copy of the quoted string and remove the \.
  */
-HawkcError hawkc_parse_auth_header(HawkcContext ctx, char *value, size_t len, HawkcSchemeHandler scheme_handler, HawkcParamHandler param_handler, void *data);
+HawkcError hawkc_parse_auth_header(HawkcContext ctx, unsigned char *value, size_t len, HawkcSchemeHandler scheme_handler, HawkcParamHandler param_handler, void *data);
 
 /** Fixed time byte-wise comparision.
  *
  * Return 1 if the supplied byte sequences are byte-wise equal, 0 otherwise.
  */
-int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, int len);
+int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, size_t len);
+
+/** Turn an unsigned char array into an array of hex-encoded bytes.
+ *
+ * The result will encode each bye as a two-chars hex value (00 to ff)
+ * and thus be twice as long as the input.
+ *
+ * The caller is responsible to provide a buffer of at least 2xlen
+ * bytes to hold the result.
+ *
+ * Does not \0 terminate the created string.
+ */
+void hawkc_bytes_to_hex(const unsigned char *bytes, size_t len, unsigned char *buf);
+
+
+/*
+ * Determine the number of digits in a time_t value.
+ */
+unsigned int hawkc_number_of_digits(time_t t);
+
+
+/*
+ * Parse a unix time value from a string. If the string is not parsable, this function returns HAWKC_TIME_PARSE_ERROR.
+ */
+HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp);
+
+
+/*
+ * On some target environments I had problems compiling since digittoint wasn't
+ * available. Here I provide my own implementation of digittoint.
+ */
+int my_digittoint(char ch);
+
+
 
 
 #ifdef __cplusplus

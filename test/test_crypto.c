@@ -6,12 +6,13 @@
 static struct HawkcContext ctx;
 static HawkcError e;
 
+
 int test_hmac() {
 
 	unsigned char buf[1024];
 	unsigned char buf2[1024];
-	int len;
-	int len2;
+	size_t len;
+	size_t len2;
 
 	e = hawkc_hmac(&ctx, HAWKC_SHA_256,(unsigned char *)"test",4,(unsigned char *)"Das ist die Message",19,buf,&len);
 	EXPECT_RETVAL(HAWKC_OK,e,&ctx);
@@ -21,6 +22,10 @@ int test_hmac() {
 
 	EXPECT_INT_EQUAL(len,len2);
 	EXPECT_BYTE_EQUAL(buf,buf2,len);
+
+
+
+
 
 	return 0;
 }

@@ -11,14 +11,14 @@ static char buf[1024];
 static HawkcError scheme_handler(HawkcContext ctx,HawkcString scheme,void *data) {
 	memset(scheme_buf,0,sizeof(scheme_buf));
 	memset(buf,0,sizeof(buf));
-	strncpy(scheme_buf,scheme.data,scheme.len);
+	memcpy(scheme_buf,scheme.data,scheme.len);
 	return HAWKC_OK;	
 }
 static HawkcError param_handler(HawkcContext ctx,HawkcString key, HawkcString value,void *data) {
 	strcat(buf,"<");
-	strncat(buf,key.data,key.len);
+	strncat(buf,(char*)key.data,key.len);
 	strcat(buf,":");
-	strncat(buf,value.data,value.len);
+	strncat(buf,(char*)value.data,value.len);
 	strcat(buf,">");
 	return HAWKC_OK;	
 }

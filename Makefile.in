@@ -18,6 +18,8 @@ LIBOBJS=\
  hawkc/common.o \
  hawkc/parser.o \
  hawkc/crypto_openssl.o \
+ hawkc/authorization.o \
+ hawkc/www_authenticate.o \
 
 OBJS=\
  hawk/hawk.o \
@@ -40,6 +42,7 @@ TESTOBJ=\
   test/test_base64.o \
   test/test_crypto.o \
   test/test_authorization_header_parse.o \
+  test/test_www_authenticate_header.o
 
 
 $(TEST): $(TO) $(LIB)
@@ -53,6 +56,7 @@ buildtest: $(LIB) $(TESTOBJ)
 	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_base64 test/test_base64.o $(LIB)
 	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_crypto test/test_crypto.o $(LIB)
 	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_authorization_header_parse test/test_authorization_header_parse.o $(LIB)
+	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_www_authenticate_header test/test_www_authenticate_header.o $(LIB)
 
 
 test: buildtest
@@ -62,6 +66,7 @@ test: buildtest
 	test/test_base64
 	test/test_crypto
 	test/test_authorization_header_parse
+	test/test_www_authenticate_header
 
 
 cleantest:
@@ -71,11 +76,11 @@ cleantest:
 	rm -f test/test_base64; rm -f test/test_base64.o
 	rm -f test/test_crypto; rm -f test/test_crypto.o
 	rm -f test/test_authorization_header_parse; rm -f test/test_authorization_header_parse.o
+	rm -f test/test_www_authenticate_header; rm -f test/test_www_authenticate_header.o
 
 
 
-#all: $(LIB) $(HAWK)
-all: $(LIB) 
+all: $(LIB) $(HAWK)
 
 install:
 	cp hawkc/hawkc.h /usr/local/include
