@@ -49,18 +49,12 @@ int main(int argc, char **argv) {
 	*/
 
 	unsigned char buffer[BUF_SIZE];
-	size_t len;
+	size_t len, required_len;
 
 
 	int option;
-	/*
-	Options encryption_options = DEFAULT_ENCRYPTION_OPTIONS;
-	Options integrity_options = DEFAULT_INTEGRITY_OPTIONS;
-	struct CironContext ctx;
-	*/
 
 	hawkc_context_init(&ctx);
-
 
 	opterr = 0;
 
@@ -133,14 +127,22 @@ int main(int argc, char **argv) {
 	hawkc_context_set_port(&ctx,(unsigned char *)port,strlen(port));
 
 	hawkc_context_set_id(&ctx,(unsigned char *)id,strlen(id));
-	hawkc_context_set_port(&ctx,(unsigned char *)ext,strlen(ext));
+	if(ext != NULL) {
+		hawkc_context_set_ext(&ctx,(unsigned char *)ext,strlen(ext));
+	}
+	if( ( e = hawkc_calculate_authorization_header_length(&ctx,&required_len)) != HAWKC_OK) {
+		fprintf(stderr,"Error calculating header buffer size: %s" , hawkc_get_error(&ctx));
+		exit(2);
+	}
 
 
 	if( (e = hawkc_create_authorization_header(&ctx,buffer,&len)) != HAWKC_OK) {
 		fprintf(stderr,"Error creating header: %s" , hawkc_get_error(&ctx));
-		exit(2);
+		exit(3);
 	}
-
+/*
+	fprintf(stdout, "req=%d, actual=%d\n" , required_len, len);
+	*/
 
 	fprintf(stdout, "curl -v http://%s:%s%s -H 'Authorization: %.*s'\n",
 			host,port,path,

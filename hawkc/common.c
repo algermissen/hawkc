@@ -69,6 +69,11 @@ void hawkc_context_init(HawkcContext ctx) {
 	ctx->calloc = NULL;
 	ctx->free = NULL;
 	ctx->error = HAWKC_OK;
+
+	ctx->hmac.data = ctx->hmac_buffer;
+	ctx->ts_hmac.data = ctx->ts_hmac_buffer;
+	ctx->nonce.data = ctx->nonce_buffer;
+
 }
 
 void* hawkc_malloc(HawkcContext ctx, size_t size) {
@@ -226,5 +231,37 @@ int my_digittoint(char ch) {
   }
   return -1;
 }
+
+
+static void strreverse(unsigned char* begin, unsigned char* end) {
+	unsigned char aux;
+	while(end>begin) {
+		aux=*end, *end--=*begin, *begin++=aux;
+	}
+
+}
+
+size_t hawkc_ttoa(unsigned char* buf, time_t value) {
+
+	static unsigned char num[] = "0123456789";
+	unsigned char* wstr=buf;
+
+	div_t res;
+
+	// Conversion. Number is reversed.
+
+	do {
+		res = div(value,10);
+		*wstr++ = num[res.rem];
+		value=res.quot;
+	}while(value);
+
+	// Reverse string
+
+	strreverse(buf,wstr-1);
+	return wstr-buf;
+
+}
+
 
 

@@ -54,23 +54,6 @@ struct HawkcAlgorithm {
  */
 HawkcError HAWKCAPI hawkc_set_error(HawkcContext ctx, HawkcError e, const char *fmt, ...);
 
-/* Calculate the length of the Hawk header base string used for HMAC generation
- *
- * Useful to check or determine buffer sizes.
- */
-size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader header);
-
-/** Create Hawk header base string to be used for HMAC generation.
- *
- */
-void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsigned char* base_buf, size_t *base_len);
-
-/** Create Hawk header timestamp base string to be used for HMAC generation in WWW-Authenticate response
- * headers.
- *
- */
-void hawkc_create_ts_base_string(HawkcContext ctx, WwwAuthenticateHeader header, unsigned char* buf, size_t *len);
-
 
 /** Parse an Authorization or WWW-Authenticate header.
  *
@@ -116,6 +99,7 @@ unsigned int hawkc_number_of_digits(time_t t);
 
 /*
  * Parse a unix time value from a string. If the string is not parsable, this function returns HAWKC_TIME_PARSE_ERROR.
+ * FIXME: rename
  */
 HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp);
 
@@ -123,8 +107,15 @@ HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp);
 /*
  * On some target environments I had problems compiling since digittoint wasn't
  * available. Here I provide my own implementation of digittoint.
+ * FIXME: rename
  */
 int my_digittoint(char ch);
+
+/*
+ * Specialized version of itoa for auth header creation.
+ * Writes the unix timestamp value to buf and returns the number of digits written.
+ */
+size_t hawkc_ttoa(unsigned char* buf, time_t value);
 
 
 

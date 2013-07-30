@@ -14,7 +14,7 @@ int test_signing() {
 	char *PORT = "80";
 
 	unsigned char buf[2048];
-	size_t len,maclen;
+	size_t len;
 	int is_valid;
 
 	char *h1 = "Hawk id=\"someId\",mac=\"t81/bBJPDw53kKCs5u5YeSmL7cs=\",ts=\"1373805459\",nonce=\"abc\", ext=\"foo\"";
@@ -44,7 +44,7 @@ int test_signing() {
 	EXPECT_INT_EQUAL((int)strlen(b),(int)len);
 	EXPECT_BYTE_EQUAL(b,buf,(int)len);
 
-	hawkc_hmac(&ctx, ctx.algorithm, ctx.password.data, ctx.password.len, buf, len,ctx.hmac,&maclen);
+	hawkc_hmac(&ctx, ctx.algorithm, ctx.password.data, ctx.password.len, buf, len,ctx.hmac.data,&(ctx.hmac.len));
 	/*
 	printf("[%.*s]\n", maclen,ctx.hmac);
 	*/
@@ -62,7 +62,7 @@ int test_signing_iron() {
 	char *PORT = "8080";
 
 	unsigned char buf[2048];
-	size_t len,maclen;
+	size_t len;
 	int is_valid;
 
 	char *h1 = "Hawk id=\"Fe26.1**680f2ae51e93df2a18a72262f9e008f2fd6792279898de77d090143976bb9f4b*t6IP6Bqmrk1EA2ckV9XXMA*oscF7eDiBIqEv2Dp2GE3X3CzetIyNp3q_83mfBXKbBf0lnlwpz8sq_zOfC9HzRxzLenx7cYsijmvTLe9XmCNrZwY5nCewYJ85S0_FeoMa7hKe9iKjUov0iTlzEIvLJ3c4SFKX0712X5kwGrhx2XrHH758Z73W1_bQjPfUmHiWJA*c2024e696ad34852d294d694efcee46c0bef9c1a56b047b1f13d331c7707dd5b*UW8r4ys7OGlhnBtR7umBGj9GQXoEyJANZzNZL9eKW_I\",mac=\"u+elTyN6jaTLcw0F1Q1InPFwKMfv9X/85Syni2Zpih0=\",ts=\"1374147123\",nonce=\"abcdef\", ext=\"Some special data\"";
@@ -89,7 +89,7 @@ int test_signing_iron() {
 
 	hawkc_create_base_string(&ctx,&(ctx.header_in),buf,&len);
 
-	hawkc_hmac(&ctx, ctx.algorithm, ctx.password.data, ctx.password.len, buf, len,ctx.hmac,&maclen);
+	hawkc_hmac(&ctx, ctx.algorithm, ctx.password.data, ctx.password.len, buf, len,ctx.hmac.data,&(ctx.hmac.len));
 	/*
 	printf("___[%.*s]\n", maclen,ctx.hmac);
 	*/
@@ -113,7 +113,7 @@ int test_hawk_capatibility() {
 	char *PORT = "8080";
 
 	unsigned char buf[2048];
-	size_t len,maclen;
+	size_t len;
 	int is_valid;
 
 	/*const char *pwd = "a8>7B8X@6w0P?";
@@ -140,7 +140,7 @@ int test_hawk_capatibility() {
 
 	hawkc_create_base_string(&ctx,&(ctx.header_in),buf,&len);
 
-	hawkc_hmac(&ctx, ctx.algorithm, ctx.password.data, ctx.password.len, buf, len,ctx.hmac,&maclen);
+	hawkc_hmac(&ctx, ctx.algorithm, ctx.password.data, ctx.password.len, buf, len,ctx.hmac.data,&(ctx.hmac.len));
 	/*
 	printf("[%.*s]\n", maclen,ctx.hmac);
 	*/
@@ -166,7 +166,7 @@ int test_hawk_capatibility2() {
 	char *PORT = "8000";
 
 	unsigned char buf[2048];
-	size_t len,maclen;
+	size_t len;
 		int is_valid;
 
 	/*const char *pwd = "a8>7B8X@6w0P?";
@@ -191,7 +191,7 @@ int test_hawk_capatibility2() {
 
 	hawkc_create_base_string(&ctx,&(ctx.header_in),buf,&len);
 
-	hawkc_hmac(&ctx, ctx.algorithm, ctx.password.data, ctx.password.len, buf, len,ctx.hmac,&maclen);
+	hawkc_hmac(&ctx, ctx.algorithm, ctx.password.data, ctx.password.len, buf, len,ctx.hmac.data,&(ctx.hmac.len));
 	/*
 	printf("[%.*s]\n", maclen,ctx.hmac);
 	*/

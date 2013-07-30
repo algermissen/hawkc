@@ -52,8 +52,7 @@ void hawkc_create_ts_base_string(HawkcContext ctx, WwwAuthenticateHeader header,
 	ptr += strlen(HAWK_TS_PREFIX);
 	*ptr = LF; ptr++;
 
-	/* FIXME: avoid sprintf */
-	n = sprintf((char*)ptr,"%ld",header->ts); ptr += n;
+	n = hawkc_ttoa(ptr,header->ts); ptr += n;
 	*ptr = LF; ptr++;
 
 	*len = ptr - buf;
@@ -67,21 +66,27 @@ HawkcError hawkc_calculate_www_authenticate_header_length(HawkcContext ctx, size
 	HawkcError e;
 	unsigned char base_buf[TS_BASE_BUFFER_SIZE];
 	size_t base_len;
-	size_t ts_hmac_len;
 	size_t n;
 	WwwAuthenticateHeader ah = &(ctx->www_authenticate_header);
 
+	if(ah->ts == 0) {
+		*required_len = 4;
+		return HAWKC_OK;
+	}
+
 	hawkc_create_ts_base_string(ctx,ah,base_buf,&base_len);
 
-	if( (e = hawkc_hmac(ctx, ctx->algorithm, ctx->password.data, ctx->password.len, base_buf, base_len,ctx->ts_hmac,&ts_hmac_len)) != HAWKC_OK) {
+	if( (e = hawkc_hmac(ctx, ctx->algorithm, ctx->password.data, ctx->password.len, base_buf, base_len,ctx->ts_hmac.data,&(ctx->ts_hmac.len) )) != HAWKC_OK) {
 		return e;
 	}
+	ah->tsm.data = ctx->ts_hmac.data;
+	ah->tsm.len = ctx->ts_hmac.len;
 	n = 4;  /* Hawk */
 	if(ah->ts != 0) {
 		n += 6; /* blank,ts="" */
 		n += hawkc_number_of_digits(ah->ts);
 		n += 7; /* ,tsm="" */
-		n += ts_hmac_len;
+		n += ah->tsm.len;
 	}
 	*required_len = n;
 	return HAWKC_OK;
@@ -93,20 +98,9 @@ void hawkc_www_authenticate_header_set_ts(HawkcContext ctx, time_t ts) {
 
 HawkcError hawkc_create_www_authenticate_header(HawkcContext ctx, unsigned char* buf, size_t *len) {
 
-	HawkcError e;
-	size_t base_len;
 	WwwAuthenticateHeader ah = &(ctx->www_authenticate_header);
-	/*
-	size_t required_size;
-	*/
-	/* FIXME: make TS_BASE_BUFFER_SIZE macro and also a clac length function for later */
-	unsigned char base_buf[BASE_BUFFER_SIZE];
-	unsigned char *base_buf_ptr = base_buf;
-	/*
-	unsigned char *dyn_base_buf = NULL;
-	*/
+	unsigned char *p = buf;
 	size_t n;
-	size_t xlen;
 
 	if(ah->ts == 0) {
 		*len = 4;
@@ -114,68 +108,14 @@ HawkcError hawkc_create_www_authenticate_header(HawkcContext ctx, unsigned char*
 		return HAWKC_OK;
 	}
 
-	/*
-	 * If the required size exceeds the static base string buffer, allocate
-	 * a temporary larger buffer. But only, if the allocation size stays
-	 * below HAWKC_REQUIRED_BUFFER_TOO_LARGE limit.
-	 */
-	/*FIXME
-	required_size = hawkc_calculate_base_string_length(ctx,ah);
-	if(required_size > sizeof(base_buf)) {
-		if(required_size > MAX_DYN_BASE_BUFFER_SIZE) {
-			return hawkc_set_error(ctx,
-					HAWKC_REQUIRED_BUFFER_TOO_LARGE, "Required base string buffer of %d bytes exceeds MAX_DYN_BASE_BUFFER_SIZE" , required_size);
-		}
-		if( (dyn_base_buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
-			return hawkc_set_error(ctx,
-					HAWKC_NO_MEM, "Unable to allocate %d bytes for dynamic base buffer" , required_size);
-		}
-		base_buf_ptr = dyn_base_buf;
-	}
-	*/
+	memcpy(p,"Hawk ts=\"",9); p += 9;
+	n = hawkc_ttoa(p,ah->ts); p+= n;
+	memcpy(p,"\",tsm=\"",7); p += 7;
+	memcpy(p,ah->tsm.data,ah->tsm.len); p += ah->tsm.len;
+	memcpy(p,"\"",1); p += 1;
 
-	/*
-	 * Create base string and HMAC.
-	 */
-	hawkc_create_ts_base_string(ctx,ah,base_buf_ptr,&base_len);
-
-	e = hawkc_hmac(ctx, ctx->algorithm, ctx->password.data, ctx->password.len, base_buf_ptr, base_len,ctx->ts_hmac,&xlen);
-	/*
-	 * Free dynamic buffer immediately when it is not needed anymore.
-	 */
-	/*
-	if(dyn_base_buf != NULL) {
-		hawkc_free(ctx,dyn_base_buf);
-		* Prevent dangling pointers *
-		dyn_base_buf = NULL;
-		base_buf_ptr = base_buf;
-	}
-*/
-	/*
-	 * If HMAC generation failed, report error.
-	 */
-	if(e != HAWKC_OK) {
-		/* FIXME log - and in other hmac func with same structure */
-		return e;
-	}
-	/* FIXME: control length, provide func to calculate it! */
-	/* FIXME avoid sprintf */
-	n = sprintf((char*)buf,"Hawk ts=\"%ld\",tsm=\"%.*s\"," ,
-			ah->ts,
-			(int)xlen, ctx->ts_hmac);
-	/*
-	fprintf(stderr,"66=%d , %s\n" , n, buf);
-	*/
-
-	*len = n;
-
-	/* FIXME - Remove debug code
-	*/
-	/*
-	fprintf(stderr,"calculated: {%.*s}",xlen, ctx->hmac);
-	fprintf(stderr,"got:        {%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
-	*/
-	fprintf(stderr,"77\n" );
+	*len = p-buf;
 
 	return HAWKC_OK;
 }
+

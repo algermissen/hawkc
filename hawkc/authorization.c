@@ -62,62 +62,6 @@ HawkcError hawkc_parse_authorization_header(HawkcContext ctx, unsigned char *val
 
 
 
-HawkcError hawkc_validate_hmac(HawkcContext ctx,int *is_valid) {
-	HawkcError e;
-	size_t len,base_len,required_size;
-	unsigned char base_buf[BASE_BUFFER_SIZE];
-	unsigned char *base_buf_ptr = base_buf;
-	unsigned char *dyn_base_buf = NULL;
-
-	/*
-	 * If the required size exceeds the static base string buffer, allocate
-	 * a temporary larger buffer. But only, if the allocation size stays
-	 * below HAWKC_REQUIRED_BUFFER_TOO_LARGE limit.
-	 */
-	required_size = hawkc_calculate_base_string_length(ctx,&(ctx->header_in));
-	if(required_size > sizeof(base_buf)) {
-		if(required_size > MAX_DYN_BASE_BUFFER_SIZE) {
-			return hawkc_set_error(ctx,
-					HAWKC_REQUIRED_BUFFER_TOO_LARGE, "Required base string buffer of %d bytes exceeds MAX_DYN_BASE_BUFFER_SIZE" , required_size);
-		}
-		if( (dyn_base_buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
-			return hawkc_set_error(ctx,
-					HAWKC_NO_MEM, "Unable to allocate %d bytes for dynamic base buffer" , required_size);
-		}
-		base_buf_ptr = dyn_base_buf;
-	}
-
-	/*
-	 * Create base string and HMAC.
-	 */
-	hawkc_create_base_string(ctx,&(ctx->header_in),base_buf_ptr,&base_len);
-	e = hawkc_hmac(ctx, ctx->algorithm, ctx->password.data, ctx->password.len, base_buf_ptr, base_len,ctx->hmac,&len);
-	/*
-	 * Free dynamic buffer immediately when it is not needed anymore.
-	 */
-	if(dyn_base_buf != NULL) {
-		hawkc_free(ctx,dyn_base_buf);
-		/* Prevent dangling pointers */
-		dyn_base_buf = NULL;
-		base_buf_ptr = base_buf;
-	}
-	/*
-	 * If HMAC generation failed, report error.
-	 */
-	if(e != HAWKC_OK) {
-		return e;
-	}
-
-	/*
-	 * Compare HMACs
-	 */
-	if(ctx->header_in.mac.len == len && hawkc_fixed_time_equal(ctx->header_in.mac.data,ctx->hmac,len) ) {
-		*is_valid = 1;
-	} else {
-		*is_valid = 0;
-	}
-	return HAWKC_OK;
-}
 
 size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader header) {
 
@@ -153,8 +97,7 @@ void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsi
 	ptr += strlen(HAWK_HEADER_PREFIX);
 	*ptr = LF; ptr++;
 
-	/* FIXME: avoid sprintf here for cleanliness */
-	n = sprintf((char*)ptr,"%ld",header->ts); ptr += n;
+	n = hawkc_ttoa(ptr,header->ts); ptr += n;
 	*ptr = LF; ptr++;
 
 	memcpy(ptr,header->nonce.data,header->nonce.len);
@@ -190,41 +133,145 @@ void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsi
 	*/
 }
 
-HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* buf, size_t *len) {
+HawkcError hawkc_calculate_authorization_header_length(HawkcContext ctx, size_t *required_len) {
 
+		HawkcError e;
+		size_t base_len,required_size;
+		unsigned char base_buf[BASE_BUFFER_SIZE];
+		unsigned char *base_buf_ptr = base_buf;
+		unsigned char *dyn_base_buf = NULL;
+		AuthorizationHeader ah = &(ctx->header_out);
+
+		size_t n;
+
+		if(ah->id.len == 0) {
+			return hawkc_set_error(ctx, HAWKC_ERROR, "ID not set");
+		}
+		if(ah->ts == 0) {
+			time_t t;
+			time( &t );
+			ah->ts = t + ctx->offset;
+		}
+		if(ah->nonce.len == 0) {
+			hawkc_generate_nonce(ctx,MAX_NONCE_BYTES,ctx->nonce.data);
+			ctx->nonce.len = MAX_NONCE_HEX_BYTES;
+			ah->nonce.data = ctx->nonce.data;
+			ah->nonce.len = ctx->nonce.len;
+		}
+
+		/*
+		 * If the required size exceeds the static base string buffer, allocate
+		 * a temporary larger buffer. But only, if the allocation size stays
+		 * below HAWKC_REQUIRED_BUFFER_TOO_LARGE limit.
+		 */
+		required_size = hawkc_calculate_base_string_length(ctx,ah);
+
+		if(required_size > sizeof(base_buf)) {
+			if(required_size > MAX_DYN_BASE_BUFFER_SIZE) {
+				return hawkc_set_error(ctx,
+						HAWKC_REQUIRED_BUFFER_TOO_LARGE, "Required base string buffer of %d bytes exceeds MAX_DYN_BASE_BUFFER_SIZE" , required_size);
+			}
+			if( (dyn_base_buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
+				return hawkc_set_error(ctx,
+						HAWKC_NO_MEM, "Unable to allocate %d bytes for dynamic base buffer" , required_size);
+			}
+			base_buf_ptr = dyn_base_buf;
+		}
+
+		/*
+		 * Create base string and HMAC.
+		 */
+		hawkc_create_base_string(ctx,ah,base_buf_ptr,&base_len);
+
+		e = hawkc_hmac(ctx, ctx->algorithm, ctx->password.data, ctx->password.len, base_buf_ptr, base_len,ctx->hmac.data,&(ctx->hmac.len));
+		/*
+		 * Free dynamic buffer immediately when it is not needed anymore.
+		 */
+		if(dyn_base_buf != NULL) {
+			hawkc_free(ctx,dyn_base_buf);
+			/* Prevent dangling pointers */
+			dyn_base_buf = NULL;
+			base_buf_ptr = base_buf;
+		}
+		/*
+		 * If HMAC generation failed, report error.
+		 */
+		if(e != HAWKC_OK) {
+			return e;
+		}
+
+		ah->mac.data = ctx->hmac.data;
+		ah->mac.len = ctx->hmac.len;
+
+		n = 5; /* 'Hawk ' */
+
+
+		n += 5; /* id="" */
+		n += ah->id.len;
+
+		n++; /* , */
+		n += 8; /* nonce="" */
+		n += ah->nonce.len;
+
+		n++; /* , */
+		n += 6; /* mac="" */
+		n += ah->mac.len;
+
+		n++; /* , */
+		n += 5; /* ts="" */
+		n += hawkc_number_of_digits(ah->ts);
+
+		if(ah->ext.len > 0) {
+			n++; /* , */
+			n += 6; /* ext="" */
+			n += ah->ext.len;
+		}
+
+		*required_len = n;
+
+		return HAWKC_OK;
+}
+
+HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* buf, size_t *len) {
+	AuthorizationHeader ah = &(ctx->header_out);
+	unsigned char *p = buf;
+	size_t n;
+
+	/* FIXME enforce length calc func here. See https://github.com/algermissen/hawkc/issues/6 */
+
+	memcpy(p,"Hawk id=\"",9); p += 9;
+	memcpy(p,ah->id.data,ah->id.len); p += ah->id.len;
+	memcpy(p,"\",nonce=\"",9); p += 9;
+	memcpy(p,ah->nonce.data,ah->nonce.len); p += ah->nonce.len;
+	memcpy(p,"\",mac=\"",7); p += 7;
+	memcpy(p,ah->mac.data,ah->mac.len); p += ah->mac.len;
+	memcpy(p,"\",ts=\"",6); p += 6;
+	n = hawkc_ttoa(p,ah->ts); p+= n;
+	if(ah->ext.len > 0) {
+		memcpy(p,"\",ext=\"",7); p += 7;
+		memcpy(p,ah->ext.data,ah->ext.len); p += ah->ext.len;
+	}
+	memcpy(p,"\"",1); p += 1;
+
+	*len = p-buf;
+
+	return HAWKC_OK;
+}
+
+HawkcError hawkc_validate_hmac(HawkcContext ctx,int *is_valid) {
 	HawkcError e;
+	/* FIXME better names */
 	size_t base_len,required_size;
 	unsigned char base_buf[BASE_BUFFER_SIZE];
 	unsigned char *base_buf_ptr = base_buf;
 	unsigned char *dyn_base_buf = NULL;
-	AuthorizationHeader ah = &(ctx->header_out);
-
-	size_t n;
-	size_t xlen;
-
-	if(ah->id.len == 0) {
-		return hawkc_set_error(ctx, HAWKC_ERROR, "ID not set");
-	}
-	if(ah->ts == 0) {
-		time_t t;
-		time( &t );
-		ah->ts = t + ctx->offset;
-	}
-	if(ah->nonce.len == 0) {
-		hawkc_generate_nonce(ctx,MAX_NONCE_BYTES,ctx->nonce);
-		ah->nonce.data = ctx->nonce;
-		ah->nonce.len = MAX_NONCE_HEX_BYTES;
-	}
-	/*
-	fprintf(stderr,"11 _%.*s_\n" , ah->nonce.len , ah->nonce.data);
-	*/
 
 	/*
 	 * If the required size exceeds the static base string buffer, allocate
 	 * a temporary larger buffer. But only, if the allocation size stays
 	 * below HAWKC_REQUIRED_BUFFER_TOO_LARGE limit.
 	 */
-	required_size = hawkc_calculate_base_string_length(ctx,ah);
+	required_size = hawkc_calculate_base_string_length(ctx,&(ctx->header_in));
 	if(required_size > sizeof(base_buf)) {
 		if(required_size > MAX_DYN_BASE_BUFFER_SIZE) {
 			return hawkc_set_error(ctx,
@@ -236,25 +283,15 @@ HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* bu
 		}
 		base_buf_ptr = dyn_base_buf;
 	}
-	/*
-	fprintf(stderr,"22 _%.*s_\n" , ah->nonce.len , ah->nonce.data);
-	*/
 
 	/*
 	 * Create base string and HMAC.
 	 */
-	hawkc_create_base_string(ctx,ah,base_buf_ptr,&base_len);
-	/*
-	fprintf(stderr,"33 _%.*s_\n" , ah->nonce.len , ah->nonce.data);
-	*/
-
-	e = hawkc_hmac(ctx, ctx->algorithm, ctx->password.data, ctx->password.len, base_buf_ptr, base_len,ctx->hmac,&xlen);
+	hawkc_create_base_string(ctx,&(ctx->header_in),base_buf_ptr,&base_len);
+	e = hawkc_hmac(ctx, ctx->algorithm, ctx->password.data, ctx->password.len, base_buf_ptr, base_len,ctx->hmac.data,&(ctx->hmac.len));
 	/*
 	 * Free dynamic buffer immediately when it is not needed anymore.
 	 */
-	/*
-	fprintf(stderr,"44 _%.*s_\n" , ah->nonce.len , ah->nonce.data);
-	*/
 	if(dyn_base_buf != NULL) {
 		hawkc_free(ctx,dyn_base_buf);
 		/* Prevent dangling pointers */
@@ -262,38 +299,22 @@ HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* bu
 		base_buf_ptr = base_buf;
 	}
 	/*
-	fprintf(stderr,"55 _%.*s_\n" , ah->nonce.len , ah->nonce.data);
-	*/
-	/*
 	 * If HMAC generation failed, report error.
 	 */
 	if(e != HAWKC_OK) {
 		return e;
 	}
-	/* FIXME: control length, provide func to calculate it! */
-	/* FIXME: avoid use of sprintf and casts */
-	n = sprintf((char*)buf,"Hawk id=\"%.*s\",nonce=\"%.*s\",mac=\"%.*s\",ts=\"%ld\"" ,
-			(int)ah->id.len, ah->id.data,
-			(int)ah->nonce.len, ah->nonce.data,
-			(int)xlen, ctx->hmac,
 
-			ah->ts);
 	/*
-	fprintf(stderr,"66=%d , %s\n" , n, buf);
-	fprintf(stderr,"66.1 _%.*s_\n" , ah->nonce.len , ah->nonce.data);
-	*/
-
-	*len = n;
-
-	/* FIXME - Remove debug code
-	fprintf(stderr,"calculated: {%.*s}",xlen, ctx->hmac);
-	*/
-	/*
-	fprintf(stderr,"got:        {%.*s}", ctx->header_in.mac.len,ctx->header_in.mac.data);
-	fprintf(stderr,"77\n" );
-	*/
-
+	 * Compare HMACs
+	 */
+	if(ctx->header_in.mac.len == ctx->hmac.len && hawkc_fixed_time_equal(ctx->header_in.mac.data,ctx->hmac.data,ctx->hmac.len) ) {
+		*is_valid = 1;
+	} else {
+		*is_valid = 0;
+	}
 	return HAWKC_OK;
 }
+
 
 

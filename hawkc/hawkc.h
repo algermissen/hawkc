@@ -156,9 +156,14 @@ struct HawkcContext {
 	struct AuthorizationHeader header_out;
 	struct WwwAuthenticateHeader www_authenticate_header;
 
-	unsigned char hmac[MAX_HMAC_BYTES_B64];
-	unsigned char ts_hmac[MAX_HMAC_BYTES_B64];
-	unsigned char nonce[MAX_NONCE_HEX_BYTES];
+	unsigned char hmac_buffer[MAX_HMAC_BYTES_B64];
+	unsigned char ts_hmac_buffer[MAX_HMAC_BYTES_B64];
+	unsigned char nonce_buffer[MAX_NONCE_HEX_BYTES];
+	HawkcString hmac;
+	HawkcString ts_hmac;
+	HawkcString nonce;
+
+
 
 };
 
@@ -185,13 +190,17 @@ HAWKCAPI void hawkc_context_set_ext(HawkcContext ctx,unsigned char *ext, size_t 
 
 HAWKCAPI HawkcError hawkc_parse_authorization_header(HawkcContext ctx, unsigned char *value, size_t len);
 HAWKCAPI HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* buf, size_t *len);
+HAWKCAPI HawkcError hawkc_calculate_authorization_header_length(HawkcContext ctx, size_t *required_len);
 HAWKCAPI HawkcError hawkc_validate_hmac(HawkcContext ctx, int *is_valid);
+
+
+HAWKCAPI void hawkc_www_authenticate_header_set_ts(HawkcContext ctx, time_t ts);
 
 HAWKCAPI HawkcError hawkc_parse_www_authenticate_header(HawkcContext ctx, unsigned char *value, size_t len);
 HAWKCAPI HawkcError hawkc_calculate_www_authenticate_header_length(HawkcContext ctx, size_t *required_len);
 HAWKCAPI HawkcError hawkc_create_www_authenticate_header(HawkcContext ctx, unsigned char* buf, size_t *len);
 
-HAWKCAPI void hawkc_www_authenticate_header_set_ts(HawkcContext ctx, time_t ts);
+
 
 
 
