@@ -41,7 +41,7 @@ static HawkcError param_handler(HawkcContext ctx,HawkcString key, HawkcString va
 		h->nonce.len = value.len;
 	} else if(key.len == 2 && !memcmp(key.data,"ts",key.len)) {
 		HawkcError e;
-		if( (e = parse_time(ctx,value,&(h->ts))) != HAWKC_OK) {
+		if( (e = hawkc_parse_time(ctx,value,&(h->ts))) != HAWKC_OK) {
 			return e;
 		}
 	} else if(key.len == 3 && !memcmp(key.data,"ext",key.len)) {

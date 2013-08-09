@@ -70,13 +70,13 @@ HawkcError HAWKCAPI hawkc_set_error(HawkcContext ctx, HawkcError e, const char *
  * Caveat: This means that extracted quoted strings will contain the escape characters. It is
  * the responsibility of the caller to make a copy of the quoted string and remove the \.
  */
-HawkcError hawkc_parse_auth_header(HawkcContext ctx, unsigned char *value, size_t len, HawkcSchemeHandler scheme_handler, HawkcParamHandler param_handler, void *data);
+HawkcError HAWKCAPI hawkc_parse_auth_header(HawkcContext ctx, unsigned char *value, size_t len, HawkcSchemeHandler scheme_handler, HawkcParamHandler param_handler, void *data);
 
 /** Fixed time byte-wise comparision.
  *
  * Return 1 if the supplied byte sequences are byte-wise equal, 0 otherwise.
  */
-int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, size_t len);
+int HAWKCAPI hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, size_t len);
 
 /** Turn an unsigned char array into an array of hex-encoded bytes.
  *
@@ -88,20 +88,20 @@ int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, size_t len);
  *
  * Does not \0 terminate the created string.
  */
-void hawkc_bytes_to_hex(const unsigned char *bytes, size_t len, unsigned char *buf);
+void HAWKCAPI hawkc_bytes_to_hex(const unsigned char *bytes, size_t len, unsigned char *buf);
 
 
 /*
  * Determine the number of digits in a time_t value.
  */
-unsigned int hawkc_number_of_digits(time_t t);
+unsigned int HAWKCAPI hawkc_number_of_digits(time_t t);
 
 
 /*
  * Parse a unix time value from a string. If the string is not parsable, this function returns HAWKC_TIME_PARSE_ERROR.
  * FIXME: rename
  */
-HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp);
+HawkcError HAWKCAPI hawkc_parse_time(HawkcContext ctx, HawkcString ts, time_t *tp);
 
 
 /*

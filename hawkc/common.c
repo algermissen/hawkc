@@ -196,7 +196,7 @@ unsigned int hawkc_number_of_digits(time_t t) {
 }
 
 
-HawkcError parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
+HawkcError hawkc_parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
 	unsigned char *p = ts.data;
 	time_t t = 0;
 	int i = 0;

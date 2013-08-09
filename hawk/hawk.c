@@ -28,7 +28,6 @@ int main(int argc, char **argv) {
 
 	HawkcError e;
 	struct HawkcContext ctx;
-	int verbose = 0;
 	char *id = NULL;
 	char *password = NULL;
 	char *method = NULL;
@@ -58,7 +57,7 @@ int main(int argc, char **argv) {
 
 	opterr = 0;
 
-	while ((option = getopt(argc, argv, "-i:p:M:H:O:P:e:a:o:hv")) != EOF) {
+	while ((option = getopt(argc, argv, "-i:p:M:H:O:P:e:a:o:h")) != EOF) {
 		switch (option) {
 		case 'i': id = mystrdup(optarg,"id"); break;
 		case 'p': password = mystrdup(optarg,"password"); break;
@@ -80,9 +79,6 @@ int main(int argc, char **argv) {
 		case 'h':
 			help();
 			exit(0);
-		case 'v':
-			verbose = 1;
-			break;
 		case '?':
 			usage();
 			exit(1);
