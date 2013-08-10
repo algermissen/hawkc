@@ -30,9 +30,11 @@ This builds a static library in the hawkc directory named libhawkc.a which you
 need to link to your own projects to include hawkc. Dynamic linking is not
 provided at this point.
 
-The build creates a command line utility _iron_ in the iron directory.
-This can be used to seal or unseal arbitrary input. Have a look at the sources
-in iron/iron.c to see how to use the hawkc library.
+The build creates a command line utility _hawk_ in the hawk directory.
+
+This can be used to generate Authorization header values, for example for
+use with curl. Have a look at the sources in hawk/hawk.c to see how to use
+the hawkc library.
 
 After the build, you should run the tests using
 
