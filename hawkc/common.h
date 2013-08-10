@@ -99,7 +99,6 @@ unsigned int HAWKCAPI hawkc_number_of_digits(time_t t);
 
 /*
  * Parse a unix time value from a string. If the string is not parsable, this function returns HAWKC_TIME_PARSE_ERROR.
- * FIXME: rename
  */
 HawkcError HAWKCAPI hawkc_parse_time(HawkcContext ctx, HawkcString ts, time_t *tp);
 
@@ -107,15 +106,14 @@ HawkcError HAWKCAPI hawkc_parse_time(HawkcContext ctx, HawkcString ts, time_t *t
 /*
  * On some target environments I had problems compiling since digittoint wasn't
  * available. Here I provide my own implementation of digittoint.
- * FIXME: rename
  */
-int my_digittoint(char ch);
+int HAWKCAPI hawkc_my_digittoint(char ch);
 
 /*
  * Specialized version of itoa for auth header creation.
  * Writes the unix timestamp value to buf and returns the number of digits written.
  */
-size_t hawkc_ttoa(unsigned char* buf, time_t value);
+size_t HAWKCAPI hawkc_ttoa(unsigned char* buf, time_t value);
 
 
 

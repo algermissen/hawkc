@@ -161,7 +161,7 @@ HawkcAlgorithm hawkc_algorithm_by_name(char *name, size_t len) {
 int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, size_t len) {
 	int equal = 1;
 	size_t i;
-	/* FIXME: try to remove casts */
+	/* FIXME: try to remove casts - I fail to see why they are needed. Implicit cast by op?*/
 	for(i = 0; (int)i<(int)len;i++) {
 		if(lhs[i] != rhs[i]) {
 			equal = 0;
@@ -185,7 +185,7 @@ void hawkc_bytes_to_hex(const unsigned char *bytes, size_t len, unsigned char *b
 	}
 }
 
-/* FIXME: try to change to size_t */
+/* FIXME: try to retval change to size_t */
 unsigned int hawkc_number_of_digits(time_t t) {
 	unsigned int count=0;
 	while(t!=0) {
@@ -205,7 +205,7 @@ HawkcError hawkc_parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
 			return hawkc_set_error(ctx,
 					HAWKC_TIME_VALUE_ERROR, "'%.*s' is not a valid integer" , ts.len,ts.data);
 		}
-		t = (t * 10) + my_digittoint(*p);
+		t = (t * 10) + hawkc_my_digittoint(*p);
 
 		i++;
 		p++;
@@ -216,7 +216,7 @@ HawkcError hawkc_parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
 }
 
 
-int my_digittoint(char ch) {
+int hawkc_my_digittoint(char ch) {
   int d = ch - '0';
   if ((unsigned) d < 10) {
     return d;
