@@ -8,8 +8,8 @@ Status
 
 hawkc is usable on the server side but is lacking the following features:
 
-- payload validation
-- verificatin of the WWW-Authenticate tsm parameter (timestamp signature)
+- Payload validation
+- Verificatin of the WWW-Authenticate tsm parameter (timestamp signature)
 - Server-Authorization header support
 - SNTP support
 - Incompatible with the original Hawk implementation when ext data contains double quotes (hawkc keeps the escape chars in the base string). Will be fixed.
@@ -81,7 +81,7 @@ Memory Management
 
 hawkc is designed to avoid internal memory allocation as much as possible. However,
 it is impossible to estimate the size of incoming headers or data because URI
-path length and extention data are both completely arbitrary. As the both go
+path length and extention data are both completely arbitrary. As they both go
 into the base string, hawkc must support arbitrary length base string buffers.
 
 The header file common.h defines _BASE_BUFFER_SIZE_ as a buffer size that should
@@ -96,7 +96,9 @@ Dynamic memory allocation is limited to _MAX_DYN_BASE_BUFFER_SIZE_ to prevent
 incoming requests from taking up too much memory. An error will be returned in
 such cases.
 
-
+hawkc provides API calls to supply specialized malloc, calloc and free functions.
+This is useful, if you are using hawkc in an environment that provides pooled 
+memory management. Writing an NGINX module would be an example of this.
 
 
 Usage
