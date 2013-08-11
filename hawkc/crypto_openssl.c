@@ -31,7 +31,7 @@ HawkcError hawkc_hmac(HawkcContext ctx, HawkcAlgorithm algorithm,
 		const unsigned char *data, size_t data_len, unsigned char *result,
 		size_t *result_len) {
 
-	int result_len_int; /* Used for concersion between int and size_t, see https://github.com/algermissen/hawkc/issues/4 */
+	int result_len_int; /* Used for conversion between int and size_t, see https://github.com/algermissen/hawkc/issues/4 */
 
 	HMAC_CTX md_ctx;
 	const EVP_MD *md;

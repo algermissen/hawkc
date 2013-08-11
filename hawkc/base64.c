@@ -33,9 +33,6 @@
 
  YWxsIHlvdXIgYmFzZSBhcmUgYmVsb25nIHRvIHVz
 
- FIXME: rename params to be nicer
-
- #include <stdlib.h>
  */
 
 const static char* b64="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" ;

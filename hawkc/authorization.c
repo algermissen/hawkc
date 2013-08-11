@@ -55,14 +55,19 @@ static HawkcError param_handler(HawkcContext ctx,HawkcString key, HawkcString va
 }
 
 
-
+/*
+ * Parse an authorization header. Using the internal auth header parser with the
+ * appropriate callbacks.
+ */
 HawkcError hawkc_parse_authorization_header(HawkcContext ctx, unsigned char *value, size_t len) {
 	return hawkc_parse_auth_header(ctx,value,len,authorization_scheme_handler, param_handler,&(ctx->header_in));
 }
 
 
 
-
+/*
+ * Calculate the number of bytes needed to store the base string.
+ */
 size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader header) {
 
 	size_t n = 0;
@@ -81,13 +86,16 @@ size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader 
 	n += ctx->port.len;
 	n++;
 
-	n++; /* empty body hash See https://github.com/algermissen/hawkc/issues/1 */
+	n++; /* Body hash always empty. See https://github.com/algermissen/hawkc/issues/1 */
 
 	n += header->ext.len;
 	n++;
 	return n;
 }
 
+/*
+ * Create the base string for HMAC signature generation.
+ */
 void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsigned char* buf, size_t *len) {
 	unsigned char *ptr;
 	size_t n;
@@ -120,7 +128,7 @@ void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsi
 	ptr += ctx->port.len;
 	*ptr = LF; ptr++;
 
-	/* empty body hash FIXME */
+	/* Body hash always empty. See https://github.com/algermissen/hawkc/issues/1 */
 	*ptr = LF; ptr++;
 
 	memcpy(ptr,header->ext.data,header->ext.len);
@@ -133,6 +141,17 @@ void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsi
 	*/
 }
 
+/*
+ * Calculate the number of bytes necessary to store the authorization header value we would
+ * generate from the context's header_out struct.
+ *
+ * This will set timestamp and nonce internally if they have not yet been set
+ * for this context.
+ *
+ * This function will then generate the base string internally and calculate the
+ * HMAC signature. This must all be done here instead of the actual generation function
+ * because otherwise we would not know the length.
+ */
 HawkcError hawkc_calculate_authorization_header_length(HawkcContext ctx, size_t *required_len) {
 
 		HawkcError e;
@@ -144,14 +163,25 @@ HawkcError hawkc_calculate_authorization_header_length(HawkcContext ctx, size_t 
 
 		size_t n;
 
+		/*
+		 * ID is required to be set by caller.
+		 */
 		if(ah->id.len == 0) {
 			return hawkc_set_error(ctx, HAWKC_ERROR, "ID not set");
 		}
+		/*
+		 * If the caller has not yet supplied a timestamp, we do that
+		 * here. Otherwise we cannot generate the base string.
+		 */
 		if(ah->ts == 0) {
 			time_t t;
 			time( &t );
 			ah->ts = t + ctx->offset;
 		}
+		/*
+		 * If the caller has not yet supplied a nonce, we do that
+		 * here. Otherwise we cannot generate the base string.
+		 */
 		if(ah->nonce.len == 0) {
 			hawkc_generate_nonce(ctx,MAX_NONCE_BYTES,ctx->nonce.data);
 			ctx->nonce.len = MAX_NONCE_HEX_BYTES;
@@ -200,6 +230,10 @@ HawkcError hawkc_calculate_authorization_header_length(HawkcContext ctx, size_t 
 			return e;
 		}
 
+		/*
+		 * Point header's mac struct to generated hmac.
+		 */
+
 		ah->mac.data = ctx->hmac.data;
 		ah->mac.len = ctx->hmac.len;
 
@@ -232,6 +266,12 @@ HawkcError hawkc_calculate_authorization_header_length(HawkcContext ctx, size_t 
 		return HAWKC_OK;
 }
 
+/*
+ * Create an authorization header value from the internal state of the context and
+ * its header_out struct.
+ * Caller is responsible to call hawkc_calculate_authorization_header_length() first
+ * to prepare the context and calculate necessary buffer size.
+ */
 HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* buf, size_t *len) {
 	AuthorizationHeader ah = &(ctx->header_out);
 	unsigned char *p = buf;
@@ -241,12 +281,18 @@ HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* bu
 
 	memcpy(p,"Hawk id=\"",9); p += 9;
 	memcpy(p,ah->id.data,ah->id.len); p += ah->id.len;
+
 	memcpy(p,"\",nonce=\"",9); p += 9;
 	memcpy(p,ah->nonce.data,ah->nonce.len); p += ah->nonce.len;
+
 	memcpy(p,"\",mac=\"",7); p += 7;
 	memcpy(p,ah->mac.data,ah->mac.len); p += ah->mac.len;
+
 	memcpy(p,"\",ts=\"",6); p += 6;
 	n = hawkc_ttoa(p,ah->ts); p+= n;
+
+	/* Body hash always empty. See https://github.com/algermissen/hawkc/issues/1 */
+
 	if(ah->ext.len > 0) {
 		memcpy(p,"\",ext=\"",7); p += 7;
 		memcpy(p,ah->ext.data,ah->ext.len); p += ah->ext.len;
@@ -258,6 +304,18 @@ HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* bu
 	return HAWKC_OK;
 }
 
+/*
+ * Validate the HMAC of the context's header_in struct.
+ * This assumes a header has been parsed and thus that the
+ * header_in struct has been populated. It is also
+ * required that the caller has set password and algorithm
+ * on the context, as well as the reuqest parameters that
+ * go into the base string (method,path,host,port)
+ *
+ * This function will then calculate an hmac from this data
+ * and compare it to the hmac value parsed into header_in
+ * struct.
+ */
 HawkcError hawkc_validate_hmac(HawkcContext ctx,int *is_valid) {
 	HawkcError e;
 	/* FIXME better names */

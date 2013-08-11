@@ -17,7 +17,7 @@ extern "C" {
  * Stores the encoded unsigned char sequence in the provided buffer. The caller is responsible for
  * supplying a buffer of sufficient length.
  *
- * The length can be calculated using  result_len = data_len * 4/3
+ * The length can be calculated using  result_len = data_len * 4/3 + 2 bytes max. padding
  *
  * The result will not be \0-terminated.
  */

@@ -23,7 +23,7 @@ HawkcAlgorithm HAWKC_SHA_256 = &_HAWKC_SHA_256;
 HawkcAlgorithm HAWKC_SHA_1 = &_HAWKC_SHA_1;
 
 /** Error strings used by hawkc_strerror
- *
+ * Must correspond to the array of codes in hawkc.h
  */
 static char *error_strings[] = {
 		"No error", /* HAWKC_OK */
@@ -82,6 +82,7 @@ void* hawkc_malloc(HawkcContext ctx, size_t size) {
 	}
 	return (ctx->malloc)(ctx,size);
 }
+
 void* hawkc_calloc(HawkcContext ctx, size_t count, size_t size) {
 	if(ctx->calloc == NULL) {
 		return calloc(count,size);
@@ -89,6 +90,7 @@ void* hawkc_calloc(HawkcContext ctx, size_t count, size_t size) {
 	return (ctx->calloc)(ctx,count,size);
 
 }
+
 void hawkc_free(HawkcContext ctx, void *ptr) {
 	if(ctx->free == NULL) {
 		free(ptr);
@@ -121,29 +123,25 @@ void hawkc_context_set_ext(HawkcContext ctx,unsigned char *ext, size_t len) {
 	ctx->header_out.ext.len = len;
 }
 
-
-
-
 void hawkc_context_set_method(HawkcContext ctx,unsigned char *method, size_t len) {
 	ctx->method.data = method;
 	ctx->method.len = len;
 }
+
 void hawkc_context_set_path(HawkcContext ctx,unsigned char *path, size_t len) {
 	ctx->path.data = path;
 	ctx->path.len = len;
-
 }
+
 void hawkc_context_set_host(HawkcContext ctx,unsigned char *host, size_t len) {
 	ctx->host.data = host;
 	ctx->host.len = len;
-
 }
+
 void hawkc_context_set_port(HawkcContext ctx,unsigned char *port, size_t len) {
 	ctx->port.data = port;
 	ctx->port.len = len;
-
 }
-
 
 HawkcAlgorithm hawkc_algorithm_by_name(char *name, size_t len) {
 	if (len == strlen(HAWKC_SHA_1->name) && strncmp(name, HAWKC_SHA_1->name, len) == 0) {
@@ -154,9 +152,6 @@ HawkcAlgorithm hawkc_algorithm_by_name(char *name, size_t len) {
 		return NULL;
 	}
 }
-
-
-
 
 int hawkc_fixed_time_equal(unsigned char *lhs, unsigned char * rhs, size_t len) {
 	int equal = 1;
@@ -195,7 +190,6 @@ unsigned int hawkc_number_of_digits(time_t t) {
 	return count;
 }
 
-
 HawkcError hawkc_parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
 	unsigned char *p = ts.data;
 	time_t t = 0;
@@ -215,7 +209,7 @@ HawkcError hawkc_parse_time(HawkcContext ctx, HawkcString ts, time_t *tp) {
 	return HAWKC_OK;
 }
 
-
+/* Supplying our own because digittoint() was missing in some compile environments. */
 int hawkc_my_digittoint(char ch) {
   int d = ch - '0';
   if ((unsigned) d < 10) {
@@ -232,7 +226,10 @@ int hawkc_my_digittoint(char ch) {
   return -1;
 }
 
-
+/*
+ * Supplying our own 'itoa' because some environments lacked this and related functions
+ * strreverse and hawkc_ttoa provide the desired functionality.
+ */
 static void strreverse(unsigned char* begin, unsigned char* end) {
 	unsigned char aux;
 	while(end>begin) {

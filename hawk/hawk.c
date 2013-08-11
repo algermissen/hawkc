@@ -8,6 +8,11 @@
 
 #define BUF_SIZE 1024
 
+typedef enum hmode {
+	PLAIN, CURL
+} hmode_t;
+
+
 void usage(void);
 void help(void);
 
@@ -35,6 +40,7 @@ int main(int argc, char **argv) {
 	char *port = NULL;
 	char *path = NULL;
 	char *ext = NULL;
+	hmode_t mode = PLAIN;
 
 	HawkcAlgorithm algorithm = NULL;
 
@@ -57,7 +63,7 @@ int main(int argc, char **argv) {
 
 	opterr = 0;
 
-	while ((option = getopt(argc, argv, "-i:p:M:H:O:P:e:a:o:h")) != EOF) {
+	while ((option = getopt(argc, argv, "-i:p:M:H:O:P:e:a:o:m:h")) != EOF) {
 		switch (option) {
 		case 'i': id = mystrdup(optarg,"id"); break;
 		case 'p': password = mystrdup(optarg,"password"); break;
@@ -74,6 +80,15 @@ int main(int argc, char **argv) {
 			if( (algorithm = hawkc_algorithm_by_name(optarg,strlen(optarg))) == NULL) {
 				fprintf(stderr,"Algorithm not known: %s",optarg);
 				exit(4);
+			}
+			break;
+		case 'm':
+			if(strcmp("plain",optarg) == 0) {
+				mode = PLAIN;
+			} else if(strcmp("curl",optarg) == 0) {
+				mode = CURL;
+			} else {
+				fprintf(stderr,"Mode not known: %s",optarg);
 			}
 			break;
 		case 'h':
@@ -146,9 +161,14 @@ int main(int argc, char **argv) {
 	fprintf(stdout, "req=%d, actual=%d\n" , required_len, len);
 	*/
 
-	fprintf(stdout, "curl -v http://%s:%s%s -H 'Authorization: %.*s'\n",
-			host,port,path,
-			(int)len,buffer);
+	switch(mode) {
+	case PLAIN:
+		fprintf(stdout, "%.*s\n", (int)len,buffer);
+		break;
+	case CURL:
+		fprintf(stdout, "curl -v http://%s:%s%s -H 'Authorization: %.*s'\n", host,port,path, (int)len,buffer);
+		break;
+	}
 
 	hawkc_free(&ctx,buffer);
 
@@ -178,5 +198,6 @@ void help(void) {
 	printf("    -a <algorithm>   Algorithm to use for HMAC generation; defaults to sha1\n");
 	printf("    -e <ext>         Arbitrary string to put into 'ext' header parameter\n");
 	printf("    -o <offset>      Number of seconds to use for clock offset\n");
+	printf("    -m <mode>        Output mode. Can be 'plain' (default) or 'curl' \n");
 	printf("\n");
 }

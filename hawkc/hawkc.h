@@ -147,9 +147,10 @@ typedef struct WwwAuthenticateHeader {
  * www_authenticate_header is used either way, depending on use on
  * the server- or client side.
  *
- * hmac is used as a buffer to write HMAC signatures to. Not sure if this is
- * necessary, could probably be replaced by local buffer. Will depend on
- * what happens, when we start implementing *writing* headers. FIXME
+ * hmac_buffer, ts_hmac_buffer and nonce_buffer are used as buffers to write HMAC
+ * signatures and nonce to. There are three corresponding HawkcStrings to point
+ * to the buffers.
+ *
  *
  */
 struct HawkcContext {

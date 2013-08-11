@@ -12,6 +12,8 @@ hawkc is usable on the server side but is lacking the following features:
 - verificatin of the WWW-Authenticate tsm parameter (timestamp signature)
 - Server-Authorization header support
 - SNTP support
+- Incompatible with the original Hawk implementation when ext data contains double quotes (hawkc keeps the escape chars in the base string). Will be fixed.
+- Support for dlg and app parameters
 
 And also see the issues list.
 
@@ -74,6 +76,29 @@ implementation of the functions declared in `hawkc/crypto.h`. Have a look at
 `hawkc/crypto_openssl.c` to see how that works. The other parts of hawkc do not
 depend on OpenSSL.
 
+Memory Management
+=================
+
+hawkc is designed to avoid internal memory allocation as much as possible. However,
+it is impossible to estimate the size of incoming headers or data because URI
+path length and extention data are both completely arbitrary. As the both go
+into the base string, hawkc must support arbitrary length base string buffers.
+
+The header file common.h defines _BASE_BUFFER_SIZE_ as a buffer size that should
+be large enough to hold most base strings. This buffer size is then used to
+define local buffers to avoid memory allocation for base strings of common sizes.
+
+If the required size for a base string exceeds _BASE_BUFFER_SIZE_ memory is
+allocated dynamically and freed right away, when the HMAC has been generated from
+the base string.
+
+Dynamic memory allocation is limited to _MAX_DYN_BASE_BUFFER_SIZE_ to prevent
+incoming requests from taking up too much memory. An error will be returned in
+such cases.
+
+
+
+
 Usage
 =====
 
@@ -109,7 +134,57 @@ Usage
     }
 
     /* check nonce if desired */
+    
+    
+Using the Command Line Tool hawk
+=================================
+
+hawkc provides a commandline tool for development and testing purposes. It allows you to generate
+HTTP header values, for example to be used with curl.
+
+Suppose you have a client ID, password and algorithm to use like this:
+
+   Client ID: 123
+   Password: geheim
+   Algorithm: SHA 1
+
+And suppose you want to use these to sign an HTTP GET request  to
+
+   http://example.org:80/api/news
+
+Using the hawk commandline tool you can generate a header like this:
+
+    $ hawk -i 123 -p geheim -H example.org -P /api/news -M GET -O 80 -a sha1
+
+This will return the string (using the current system unix timestamp)    
+    
+    Hawk id="123",nonce="17bf5f9ca803",mac="LZess/R3c0HF3Yal3Dh/yPjkVfU=",ts="1376201564"
+
+You can also make use of the defaults and omit GET and Port 80 and sha1:
+
+    $ hawk -i 123 -p geheim -H example.org -P /api/news
+
+If your intention is a curl invokation, use the -m option to generate the curl command line:
+
+    $ hawk -i 123 -p geheim -H example.org -P /api/news -m curl
+    
+which produces:
+
+    curl -v http://example.org:80/api/news \
+    -H 'Authorization: Hawk id="123",nonce="eef569ba8206",\
+    mac="G3tyimuqZ1Lqwv5qb56TPFn3j8Q=",ts="1376201656"'
+     
 
 
 
+
+Note to Implementors
+====================
+
+When you plan to add features to hawkc, please carefully note the following:
+
+* If you add algorithms, you must check and maybe adjust several buffer size macros in hawkc.h and common.h
+  These mocros are set the the maximum necessary HMAC length possibly needed by hawkc. Hence, they
+  depend on the actual algorithms provided.
+  In addition, you must add new algorithms to the if-cascade in common.c where algorithms are looked up by name.
 
