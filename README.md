@@ -144,13 +144,13 @@ HTTP header values, for example to be used with curl.
 
 Suppose you have a client ID, password and algorithm to use like this:
 
-   Client ID: 123
-   Password: geheim
-   Algorithm: SHA 1
+    Client ID: 123
+    Password: geheim
+    Algorithm: SHA 1
 
 And suppose you want to use these to sign an HTTP GET request  to
 
-   http://example.org:80/api/news
+    http://example.org:80/api/news
 
 Using the hawk commandline tool you can generate a header like this:
 
