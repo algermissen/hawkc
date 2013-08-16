@@ -242,8 +242,10 @@ size_t hawkc_ttoa(unsigned char* buf, time_t value) {
 
 	static unsigned char num[] = "0123456789";
 	unsigned char* wstr=buf;
-
+	int sign;
 	div_t res;
+
+	if ((sign=value) < 0) value = -value;
 
 	// Conversion. Number is reversed.
 
@@ -252,13 +254,15 @@ size_t hawkc_ttoa(unsigned char* buf, time_t value) {
 		*wstr++ = num[res.rem];
 		value=res.quot;
 	}while(value);
-
+	if(sign<0) *wstr++='-';
 	// Reverse string
 
 	strreverse(buf,wstr-1);
 	return wstr-buf;
 
 }
+
+
 
 
 

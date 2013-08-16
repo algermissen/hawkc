@@ -109,11 +109,7 @@ HawkcError HAWKCAPI hawkc_parse_time(HawkcContext ctx, HawkcString ts, time_t *t
  */
 int HAWKCAPI hawkc_my_digittoint(char ch);
 
-/*
- * Specialized version of itoa for auth header creation.
- * Writes the unix timestamp value to buf and returns the number of digits written.
- */
-size_t HAWKCAPI hawkc_ttoa(unsigned char* buf, time_t value);
+
 
 
 

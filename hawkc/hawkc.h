@@ -346,6 +346,21 @@ char * HAWKCAPI hawkc_get_error(HawkcContext ctx);
  */
 HawkcError HAWKCAPI hawkc_get_error_code(HawkcContext ctx);
 
+/*
+ * Specialized version of itoa for auth header creation.
+ * Writes the unix timestamp value to buf and returns the number of digits written.
+ *
+ * Handles negative time_t values to be able to represent time differences.
+ *
+ * Caller is required to allocate enaough space to hold the number in string
+ * form. Beware that a negative value needs one byte more for the sign.
+ *
+ * FIXME: Add parameter to pass in the buffer size to perform internal check
+ * agains writing past buffer end.
+ * See https://github.com/algermissen/hawkc/issues/14
+ */
+size_t HAWKCAPI hawkc_ttoa(unsigned char* buf, time_t value);
+
 
 /** The algorithms and options defined by hawkc.
  *
