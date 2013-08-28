@@ -9,7 +9,7 @@
 #define BUF_SIZE 1024
 
 typedef enum hmode {
-	PLAIN, CURL
+	PLAIN, CURL, BLITZ
 } hmode_t;
 
 
@@ -87,6 +87,8 @@ int main(int argc, char **argv) {
 				mode = PLAIN;
 			} else if(strcmp("curl",optarg) == 0) {
 				mode = CURL;
+			} else if(strcmp("blitz",optarg) == 0) {
+				mode = BLITZ;
 			} else {
 				fprintf(stderr,"Mode not known: %s",optarg);
 			}
@@ -168,6 +170,9 @@ int main(int argc, char **argv) {
 	case CURL:
 		fprintf(stdout, "curl -v http://%s:%s%s -H 'Authorization: %.*s'\n", host,port,path, (int)len,buffer);
 		break;
+	case BLITZ:
+		fprintf(stdout, "-p 1-100:60 -H 'Authorization: %.*s' http://%s:%s%s\n", (int)len,buffer, host,port,path);
+		break;
 	}
 
 	hawkc_free(&ctx,buffer);
@@ -198,6 +203,6 @@ void help(void) {
 	printf("    -a <algorithm>   Algorithm to use for HMAC generation; defaults to sha1\n");
 	printf("    -e <ext>         Arbitrary string to put into 'ext' header parameter\n");
 	printf("    -o <offset>      Number of seconds to use for clock offset\n");
-	printf("    -m <mode>        Output mode. Can be 'plain' (default) or 'curl' \n");
+	printf("    -m <mode>        Output mode. Can be 'plain' (default), 'curl' or 'blitz'\n");
 	printf("\n");
 }
