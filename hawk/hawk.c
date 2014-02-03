@@ -1,5 +1,6 @@
 #include <getopt.h>
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -69,16 +70,31 @@ int main(int argc, char **argv) {
 		case 'p': password = mystrdup(optarg,"password"); break;
 		case 'M': method = mystrdup(optarg,"method"); break;
 		case 'H': host = mystrdup(optarg,"host"); break;
-		case 'O': port = mystrdup(optarg,"port"); break;
+		case 'O': { port = mystrdup(optarg,"port");
+			errno = 0;
+			int p = strtol(port, (char **)NULL, 10);
+			if(errno != 0) {
+				perror("Port not a valid integer");
+			}
+			if(p < 0 || p > 0xFFFF) {
+				fprintf(stderr,"Port %d is not a valid port number\n",p);
+				exit(4);
+			}
+			break; }
 		case 'P': path = mystrdup(optarg,"path"); break;
 		case 'e': ext = mystrdup(optarg,"ext"); break;
 		case 'o': {
+			errno = 0;
 			int offset = (int)strtol(optarg, (char **)NULL, 10);
+			if(errno != 0) {
+				perror("Offset not a valid integer");
+			}
+
 			hawkc_context_set_clock_offset(&ctx,offset);
 			break; }
 		case 'a':
 			if( (algorithm = hawkc_algorithm_by_name(optarg,strlen(optarg))) == NULL) {
-				fprintf(stderr,"Algorithm not known: %s",optarg);
+				fprintf(stderr,"Algorithm not known: %s\n",optarg);
 				exit(4);
 			}
 			break;
@@ -90,7 +106,7 @@ int main(int argc, char **argv) {
 			} else if(strcmp("blitz",optarg) == 0) {
 				mode = BLITZ;
 			} else {
-				fprintf(stderr,"Mode not known: %s",optarg);
+				fprintf(stderr,"Mode not known: %s\n",optarg);
 			}
 			break;
 		case 'h':
@@ -144,19 +160,19 @@ int main(int argc, char **argv) {
 		hawkc_context_set_ext(&ctx,(unsigned char *)ext,strlen(ext));
 	}
 	if( ( e = hawkc_calculate_authorization_header_length(&ctx,&required_len)) != HAWKC_OK) {
-		fprintf(stderr,"Error calculating header buffer size: %s" , hawkc_get_error(&ctx));
+		fprintf(stderr,"Error calculating header buffer size: %s\n" , hawkc_get_error(&ctx));
 		exit(2);
 	}
 
 	if( (buffer = (unsigned char *)hawkc_malloc(&ctx,required_len)) == NULL) {
-		fprintf(stderr,"Unable to allocate %d bytes, %s" , (int)required_len, hawkc_get_error(&ctx));
+		fprintf(stderr,"Unable to allocate %d bytes, %s\n" , (int)required_len, hawkc_get_error(&ctx));
 		exit(3);
 
 	}
 
 
 	if( (e = hawkc_create_authorization_header(&ctx,buffer,&len)) != HAWKC_OK) {
-		fprintf(stderr,"Error creating header: %s" , hawkc_get_error(&ctx));
+		fprintf(stderr,"Error creating header: %s\n" , hawkc_get_error(&ctx));
 		exit(4);
 	}
 /*

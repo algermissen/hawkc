@@ -47,6 +47,12 @@ static HawkcError param_handler(HawkcContext ctx,HawkcString key, HawkcString va
 	} else if(key.len == 3 && !memcmp(key.data,"ext",key.len)) {
 		h->ext.data = value.data;
 		h->ext.len = value.len;
+	} else if(key.len == 3 && !memcmp(key.data,"app",key.len)) {
+		h->app.data = value.data;
+		h->app.len = value.len;
+	} else if(key.len == 3 && !memcmp(key.data,"dlg",key.len)) {
+		h->dlg.data = value.data;
+		h->dlg.len = value.len;
 	} else {
 		; /* ignore unknown parameter */
 	}
@@ -72,24 +78,30 @@ size_t hawkc_calculate_base_string_length(HawkcContext ctx, AuthorizationHeader 
 
 	size_t n = 0;
 	n += strlen(HAWK_HEADER_PREFIX);
-	n++;
+	n++; /* 1 for \n */
 	n += hawkc_number_of_digits(header->ts);
-	n++;
+	n++; /* 1 for \n */
 	n += header->nonce.len;
-	n++;
+	n++; /* 1 for \n */
 	n += ctx->method.len;
-	n++;
+	n++; /* 1 for \n */
 	n += ctx->path.len;
-	n++;
+	n++; /* 1 for \n */
 	n += ctx->host.len;
-	n++;
+	n++; /* 1 for \n */
 	n += ctx->port.len;
-	n++;
+	n++; /* 1 for \n */
 
-	n++; /* Body hash always empty. See https://github.com/algermissen/hawkc/issues/1 */
+	n++; /* Body hash always empty, but 1 for \n. See https://github.com/algermissen/hawkc/issues/1 */
 
 	n += header->ext.len;
-	n++;
+	n++; /* 1 for \n */
+	if( header->app.len > 0) {
+		n += header->app.len;
+		n++; /* 1 for \n */
+		n += header->dlg.len;
+		n++; /* 1 for \n */
+        }
 	return n;
 }
 
@@ -134,6 +146,15 @@ void hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsi
 	memcpy(ptr,header->ext.data,header->ext.len);
 	ptr += header->ext.len;
 	*ptr = LF; ptr++;
+
+	if(header->app.len > 0) {
+		memcpy(ptr,header->app.data,header->app.len);
+		ptr += header->app.len;
+		*ptr = LF; ptr++;
+		memcpy(ptr,header->dlg.data,header->dlg.len);
+		ptr += header->dlg.len;
+		*ptr = LF; ptr++;
+	}
 
 	*len = ptr - buf;
 	/* FIXME
@@ -261,6 +282,17 @@ HawkcError hawkc_calculate_authorization_header_length(HawkcContext ctx, size_t 
 			n += ah->ext.len;
 		}
 
+		if(ah->app.len > 0) {
+			n++; /* , */
+			n += 6; /* app="" */
+			n += ah->app.len;
+		}
+		if(ah->dlg.len > 0) {
+			n++; /* , */
+			n += 6; /* dlg="" */
+			n += ah->dlg.len;
+		}
+
 		*required_len = n;
 
 		return HAWKC_OK;
@@ -297,6 +329,16 @@ HawkcError hawkc_create_authorization_header(HawkcContext ctx, unsigned char* bu
 		memcpy(p,"\",ext=\"",7); p += 7;
 		memcpy(p,ah->ext.data,ah->ext.len); p += ah->ext.len;
 	}
+	if(ah->app.len > 0) {
+		memcpy(p,"\",app=\"",7); p += 7;
+		memcpy(p,ah->app.data,ah->app.len); p += ah->app.len;
+	}
+	if(ah->dlg.len > 0) {
+		memcpy(p,"\",dlg=\"",7); p += 7;
+		memcpy(p,ah->dlg.data,ah->dlg.len); p += ah->dlg.len;
+	}
+
+	/* This closes the last parameter */
 	memcpy(p,"\"",1); p += 1;
 
 	*len = p-buf;

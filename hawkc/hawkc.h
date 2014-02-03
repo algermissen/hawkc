@@ -122,6 +122,8 @@ typedef struct AuthorizationHeader {
 	HawkcString hash;
 	HawkcString nonce;
 	time_t ts;
+	HawkcString app;
+	HawkcString dlg;
 	HawkcString ext;
 
 } *AuthorizationHeader;

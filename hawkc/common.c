@@ -118,6 +118,16 @@ void hawkc_context_set_id(HawkcContext ctx,unsigned char *id, size_t len) {
 	ctx->header_out.id.len = len;
 }
 
+void hawkc_context_set_app(HawkcContext ctx,unsigned char *app, size_t len) {
+	ctx->header_out.app.data = app;
+	ctx->header_out.app.len = len;
+}
+
+void hawkc_context_set_dlg(HawkcContext ctx,unsigned char *dlg, size_t len) {
+	ctx->header_out.dlg.data = dlg;
+	ctx->header_out.dlg.len = len;
+}
+
 void hawkc_context_set_ext(HawkcContext ctx,unsigned char *ext, size_t len) {
 	ctx->header_out.ext.data = ext;
 	ctx->header_out.ext.len = len;
