@@ -1,0 +1,5 @@
+0.7
+ * Add parameter validation to hawk commandline tool
+ * Add support for dlg and app parameters (#10)
+
+0.6
