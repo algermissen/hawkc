@@ -47,17 +47,17 @@ TESTOBJ=\
 
 
 $(TEST): $(TO) $(LIB)
-	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o $@ $(TO) $(LIB)
+	$(CC) $(CFLAGS) -Itest -o $@ $(TO) $(LIB) $(LIBOPT)
 
 
 buildtest: $(LIB) $(TESTOBJ)
-	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_parser test/test_parser.o $(LIB)
-	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_signing test/test_signing.o $(LIB)
-	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_base64url test/test_base64url.o $(LIB)
-	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_base64 test/test_base64.o $(LIB)
-	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_crypto test/test_crypto.o $(LIB)
-	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_authorization_header_parse test/test_authorization_header_parse.o $(LIB)
-	$(CC) $(CFLAGS) -Itest $(LIBOPT) -o test/test_www_authenticate_header test/test_www_authenticate_header.o $(LIB)
+	$(CC) $(CFLAGS) -Itest -o test/test_parser test/test_parser.o $(LIB)
+	$(CC) $(CFLAGS) -Itest -o test/test_signing test/test_signing.o $(LIB) $(LIBOPT)
+	$(CC) $(CFLAGS) -Itest -o test/test_base64url test/test_base64url.o $(LIB)
+	$(CC) $(CFLAGS) -Itest -o test/test_base64 test/test_base64.o $(LIB)
+	$(CC) $(CFLAGS) -Itest -o test/test_crypto test/test_crypto.o $(LIB) $(LIBOPT)
+	$(CC) $(CFLAGS) -Itest -o test/test_authorization_header_parse test/test_authorization_header_parse.o $(LIB)
+	$(CC) $(CFLAGS) -Itest -o test/test_www_authenticate_header test/test_www_authenticate_header.o $(LIB)
 
 
 test: buildtest
