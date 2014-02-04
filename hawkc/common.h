@@ -54,6 +54,12 @@ struct HawkcAlgorithm {
  */
 HawkcError HAWKCAPI hawkc_set_error(HawkcContext ctx, HawkcError e, const char *fmt, ...);
 
+/**
+ * Create the base string for signing.
+ * (Exported for testing)
+ */
+void HAWKCAPI hawkc_create_base_string(HawkcContext ctx, AuthorizationHeader header, unsigned char* buf, size_t *len);
+
 
 /** Parse an Authorization or WWW-Authenticate header.
  *

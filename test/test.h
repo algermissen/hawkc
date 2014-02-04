@@ -1,7 +1,7 @@
 #ifndef TEST_H
 #define TEST_H 1
 
-#include <strings.h>
+#include <string.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
