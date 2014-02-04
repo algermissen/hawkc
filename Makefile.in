@@ -26,7 +26,6 @@ OBJS=\
 
 LIB=hawkc/libhawkc.a
 
-
 $(LIB): $(LIBOBJS)
 	$(AR) rc $(LIB) $(LIBOBJS)
 
