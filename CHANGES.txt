@@ -1,3 +1,12 @@
+0.8.2
+ * Add header and qheader hawk output modes
+
+0.8.1
+ * Fixed Makefile
+
+0.8
+ * travis-ci related fixes
+
 0.7
  * Add parameter validation to hawk commandline tool
  * Add support for dlg and app parameters (#10)
