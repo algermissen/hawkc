@@ -17,7 +17,7 @@ extern "C" {
  *
  * The result will not be \0 terminated.
  */
-HawkcError HAWKCAPI hawkc_generate_nonce(HawkcContext ctx, int nbytes,
+HawkcError HAWKCAPI hawkc_generate_nonce(HawkcContext ctx, size_t nbytes,
 		unsigned char *buf);
 
 /**

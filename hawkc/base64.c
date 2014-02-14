@@ -34,6 +34,7 @@
  YWxsIHlvdXIgYmFzZSBhcmUgYmVsb25nIHRvIHVz
 
  */
+#include "base64.h"
 
 const static char* b64="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" ;
 
@@ -68,18 +69,17 @@ const static unsigned char unb64[]={
 
 
 
-unsigned char* hawkc_base64_encode(const unsigned char* bin, int len,
-		unsigned char *res, int *flen) {
+unsigned char* hawkc_base64_encode(const unsigned char* bin, size_t len, unsigned char *res, size_t *flen) {
 
-  int rc = 0 ;
-  int byteNo ;
+  size_t rc = 0 ;
+  size_t byteNo ;
 
-  int modulusLen = len % 3 ;
-  int pad = ((modulusLen&1)<<1) + ((modulusLen&2)>>1) ;
+  size_t modulusLen = len % 3 ;
+  size_t pad = ((modulusLen&1)<<1) + ((modulusLen&2)>>1) ;
 
   *flen = 4*(len + pad)/3 ;
 
-  for( byteNo = 0 ; byteNo <= len-3 ; byteNo+=3 )
+  for( byteNo = 0 ; byteNo+3 <= len ; byteNo+=3 )
   {
     unsigned char BYTE0=bin[byteNo];
     unsigned char BYTE1=bin[byteNo+1];
@@ -109,12 +109,12 @@ unsigned char* hawkc_base64_encode(const unsigned char* bin, int len,
 }
 
 
-unsigned char *hawkc_base64_decode(const unsigned char* safeAsciiPtr, int len,
-		unsigned char *bin, int *flen) {
+unsigned char *hawkc_base64_decode(const unsigned char* safeAsciiPtr, size_t len,
+		unsigned char *bin, size_t *flen) {
 
-	  int cb=0;
-	  int charNo;
-	  int pad = 0 ;
+	  size_t cb=0;
+	  size_t charNo;
+	  size_t pad = 0 ;
 
 	  if(len < 2) {
 		  *flen =  0;
@@ -126,12 +126,12 @@ unsigned char *hawkc_base64_decode(const unsigned char* safeAsciiPtr, int len,
 
 	  *flen = 3*len/4 - pad ;
 
-	  for( charNo=0; charNo <= len - 4 - pad ; charNo+=4 )
+	  for( charNo=0; charNo + 4 + pad <= len; charNo+=4 )
 	  {
-	    int A=unb64[safeAsciiPtr[charNo]];
-	    int B=unb64[safeAsciiPtr[charNo+1]];
-	    int C=unb64[safeAsciiPtr[charNo+2]];
-	    int D=unb64[safeAsciiPtr[charNo+3]];
+	    size_t A=unb64[safeAsciiPtr[charNo]];
+	    size_t B=unb64[safeAsciiPtr[charNo+1]];
+	    size_t C=unb64[safeAsciiPtr[charNo+2]];
+	    size_t D=unb64[safeAsciiPtr[charNo+3]];
 
 	    bin[cb++] = (A<<2) | (B>>4) ;
 	    bin[cb++] = (B<<4) | (C>>2) ;
@@ -140,17 +140,17 @@ unsigned char *hawkc_base64_decode(const unsigned char* safeAsciiPtr, int len,
 
 	  if( pad==1 )
 	  {
-	    int A=unb64[safeAsciiPtr[charNo]];
-	    int B=unb64[safeAsciiPtr[charNo+1]];
-	    int C=unb64[safeAsciiPtr[charNo+2]];
+	    size_t A=unb64[safeAsciiPtr[charNo]];
+	    size_t B=unb64[safeAsciiPtr[charNo+1]];
+	    size_t C=unb64[safeAsciiPtr[charNo+2]];
 
 	    bin[cb++] = (A<<2) | (B>>4) ;
 	    bin[cb++] = (B<<4) | (C>>2) ;
 	  }
 	  else if( pad==2 )
 	  {
-	    int A=unb64[safeAsciiPtr[charNo]];
-	    int B=unb64[safeAsciiPtr[charNo+1]];
+	    size_t A=unb64[safeAsciiPtr[charNo]];
+	    size_t B=unb64[safeAsciiPtr[charNo+1]];
 
 	    bin[cb++] = (A<<2) | (B>>4) ;
 	  }

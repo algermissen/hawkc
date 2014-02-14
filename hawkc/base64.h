@@ -21,7 +21,7 @@ extern "C" {
  *
  * The result will not be \0-terminated.
  */
-unsigned char* HAWKCAPI hawkc_base64_encode( const unsigned char *data, int data_len, unsigned char *res, int *result_len );
+unsigned char* HAWKCAPI hawkc_base64_encode( const unsigned char *data, size_t data_len, unsigned char *res, size_t *result_len );
 
 /** Base64 decode the given data.
  *
@@ -35,7 +35,7 @@ unsigned char* HAWKCAPI hawkc_base64_encode( const unsigned char *data, int data
  *
  * The result will not be \0-terminated.
  */
-unsigned char* HAWKCAPI hawkc_base64_decode( const unsigned char *data, int data_len, unsigned char *result, int *result_len );
+unsigned char* HAWKCAPI hawkc_base64_decode( const unsigned char *data, size_t data_len, unsigned char *result, size_t *result_len );
 
 #ifdef __cplusplus
 } // extern "C"

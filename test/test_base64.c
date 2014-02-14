@@ -29,7 +29,7 @@
 int test_base64_encodes_correctly() {
 
 	unsigned char chars[256];
-	int len;
+	size_t len;
 
 	unsigned char b1[] = { 0x66 }; /* "f" */
 	unsigned char b2[] = { 0x66, 0x6f }; /* "fo" */
@@ -87,7 +87,7 @@ int test_base64_decodes_correctly() {
 
 
 	unsigned char bytes[256];
-	int len;
+	size_t len;
 
 	unsigned char b1[] = { 0x66 }; /* "f" */
 	unsigned char b2[] = { 0x66, 0x6f }; /* "fo" */

@@ -73,7 +73,7 @@ typedef struct HawkcString {
 
 /** hawkc error codes.
  *
- * 
+ *
  */
 typedef enum {
 	HAWKC_OK, /* no error */
@@ -85,7 +85,9 @@ typedef enum {
 	HAWKC_TIME_VALUE_ERROR, /* Not a valid unix time value */
 	HAWKC_NO_MEM, /* Unable to allocate memory */
 	HAWKC_REQUIRED_BUFFER_TOO_LARGE, /* Required buffer size is too large */
-	HAWKC_ERROR /* unspecific error */
+	HAWKC_ERROR, /* unspecific error */
+	HAWKC_BASE64_ERROR, /* Unexpected string length or padding in base64 en- or decoding */
+    HAWKC_OVERFLOW_ERROR /* Unexpected number value would cause integer overflow */
 	/* If you add errors here, add them in common.c also */
 } HawkcError;
 

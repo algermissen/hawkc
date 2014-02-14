@@ -36,6 +36,8 @@ static char *error_strings[] = {
 		"Unable to allocate memory", /* HAWKC_NO_MEM */
 		"Required buffer size is too large", /* HAWKC_REQUIRED_BUFFER_TOO_LARGE */
 		"Unspecific error", /* HAWKC_ERROR */
+		"Unexpected string length or padding in base64 en- or decoding", /* HAWKC_BASE64_ERROR */
+        "Unexpected number value would cause integer overflow", /* HAWKC_OVERFLOW_ERROR */
 		NULL
 };
 

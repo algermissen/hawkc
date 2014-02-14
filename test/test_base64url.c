@@ -3,6 +3,7 @@
 #include "base64url.h"
 
 
+struct HawkcContext context;
 
 /*
 
@@ -25,7 +26,7 @@
 int test_base64url_encodes_correctly() {
 
 	unsigned char chars[256];
-	int len;
+	size_t len;
 
 	unsigned char b1[] = { 0x66 }; /* "f" */
 	unsigned char b2[] = { 0x66, 0x6f }; /* "fo" */
@@ -83,7 +84,7 @@ int test_base64url_encodes_correctly() {
 int test_base64url_decodes_correctly() {
 
 	unsigned char bytes[256];
-	int len;
+	size_t len;
 
 	unsigned char b1[] = { 0x66 }; /* "f" */
 	unsigned char b2[] = { 0x66, 0x6f }; /* "fo" */
@@ -94,34 +95,34 @@ int test_base64url_decodes_correctly() {
 	unsigned char b7[] = { 62, 1, 2, 3, 4, 5, 6, 7, 120, 60, 61, 63, 65, 44, 21, 22, 23,
 			24, 30, 31, 32, 45, 92, 93, 94, 95, 80, 81, 82, 83, 84 };
 
-	hawkc_base64url_decode((unsigned char*)"", 0, bytes, &len);
+	hawkc_base64url_decode(&context,(unsigned char*)"", 0, bytes, &len);
 	EXPECT_TRUE(len == 0);
 
-	hawkc_base64url_decode((unsigned char*)"Zg", 2, bytes, &len);
+	hawkc_base64url_decode(&context,(unsigned char*)"Zg", 2, bytes, &len);
 	EXPECT_TRUE(len == 1);
 	EXPECT_BYTE_EQUAL(b1, bytes, 1);
 
-	hawkc_base64url_decode((unsigned char*)"Zm8", 3, bytes, &len);
+	hawkc_base64url_decode(&context,(unsigned char*)"Zm8", 3, bytes, &len);
 	EXPECT_TRUE(len == 2);
 	EXPECT_BYTE_EQUAL(b2, bytes, 2);
 
-	hawkc_base64url_decode((unsigned char*)"Zm9v", 4, bytes, &len);
+	hawkc_base64url_decode(&context,(unsigned char*)"Zm9v", 4, bytes, &len);
 	EXPECT_TRUE(len == 3);
 	EXPECT_BYTE_EQUAL(b3, bytes, 3);
 
-	hawkc_base64url_decode((unsigned char*)"Zm9vYg", 6, bytes, &len);
+	hawkc_base64url_decode(&context,(unsigned char*)"Zm9vYg", 6, bytes, &len);
 	EXPECT_TRUE(len == 4);
 	EXPECT_BYTE_EQUAL(b4, bytes, 4);
 
-	hawkc_base64url_decode((unsigned char*)"Zm9vYmE", 7, bytes, &len);
+	hawkc_base64url_decode(&context,(unsigned char*)"Zm9vYmE", 7, bytes, &len);
 	EXPECT_TRUE(len == 5);
 	EXPECT_BYTE_EQUAL(b5, bytes, 5);
 
-	hawkc_base64url_decode((unsigned char*)"Zm9vYmFy", 8, bytes, &len);
+	hawkc_base64url_decode(&context,(unsigned char*)"Zm9vYmFy", 8, bytes, &len);
 	EXPECT_TRUE(len == 6);
 	EXPECT_BYTE_EQUAL(b6, bytes, 6);
 
-	hawkc_base64url_decode((unsigned char*)"PgECAwQFBgd4PD0_QSwVFhcYHh8gLVxdXl9QUVJTVA", 42,
+	hawkc_base64url_decode(&context,(unsigned char*)"PgECAwQFBgd4PD0_QSwVFhcYHh8gLVxdXl9QUVJTVA", 42,
 			bytes, &len);
 	EXPECT_TRUE(len == 31);
 	EXPECT_BYTE_EQUAL(b7, bytes, 31);

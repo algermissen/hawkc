@@ -13,7 +13,7 @@
 #include "crypto.h"
 #include "base64.h"
 
-HawkcError hawkc_generate_nonce(HawkcContext ctx, int nbytes, unsigned char *buf) {
+HawkcError hawkc_generate_nonce(HawkcContext ctx, size_t nbytes, unsigned char *buf) {
 	int r;
 	unsigned char nonce_bytes[MAX_NONCE_BYTES];
 	assert(nbytes <= MAX_NONCE_BYTES);
@@ -30,8 +30,6 @@ HawkcError hawkc_hmac(HawkcContext ctx, HawkcAlgorithm algorithm,
 		const unsigned char *password, size_t password_len,
 		const unsigned char *data, size_t data_len, unsigned char *result,
 		size_t *result_len) {
-
-	int result_len_int; /* Used for conversion between int and size_t, see https://github.com/algermissen/hawkc/issues/4 */
 
 	HMAC_CTX md_ctx;
 	const EVP_MD *md;
@@ -52,9 +50,7 @@ HawkcError hawkc_hmac(HawkcContext ctx, HawkcAlgorithm algorithm,
 
 	HMAC_Final(&md_ctx, buf, &len);
 	HMAC_CTX_cleanup(&md_ctx);
-	hawkc_base64_encode(buf, len, result, &result_len_int);
-
-	*result_len = (size_t)result_len_int;
+	hawkc_base64_encode(buf, len, result, result_len);
 
 	return HAWKC_OK;
 }
