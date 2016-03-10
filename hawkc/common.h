@@ -18,7 +18,12 @@ typedef HawkcError (*HawkcParamHandler) (HawkcContext ctx, HawkcString key, Hawk
 
 /** Structure for the Algorithm typedef in hawkc.h
  */
+
+#if __cplusplus
+struct _HawkcAlgorithm {
+#else
 struct HawkcAlgorithm {
+#endif
 	const char* name;
 };
 

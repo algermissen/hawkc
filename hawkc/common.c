@@ -16,8 +16,13 @@
  * Also, you must add to the selection if-cascades in crypto_openssl.c for them
  * to be recognized.
  */
+#if __cplusplus
+struct _HawkcAlgorithm _HAWKC_SHA_256 = { "sha256" };
+struct _HawkcAlgorithm _HAWKC_SHA_1 = { "sha1" };
+#else
 struct HawkcAlgorithm _HAWKC_SHA_256 = { "sha256" };
 struct HawkcAlgorithm _HAWKC_SHA_1 = { "sha1" };
+#endif
 
 HawkcAlgorithm HAWKC_SHA_256 = &_HAWKC_SHA_256;
 HawkcAlgorithm HAWKC_SHA_1 = &_HAWKC_SHA_1;
@@ -65,7 +70,11 @@ HawkcError hawkc_get_error_code(HawkcContext ctx) {
 
 
 void hawkc_context_init(HawkcContext ctx) {
-	memset(ctx,0,sizeof(struct HawkcContext));
+#ifdef __cplusplus
+	memset(ctx,0,sizeof(struct _HawkcContext));
+#else
+        memset(ctx,0,sizeof(struct HawkcContext));
+#endif
 	ctx->error = HAWKC_OK;
 	ctx->malloc = NULL;
 	ctx->calloc = NULL;
