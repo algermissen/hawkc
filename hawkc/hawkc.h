@@ -97,12 +97,20 @@ typedef enum {
  * library with automatic variable and no
  * need to allocate memory for context.
  */
+#ifdef __cplusplus
+typedef struct _HawkcContext *HawkcContext;
+#else
 typedef struct HawkcContext *HawkcContext;
+#endif
 
 /*
  * Type for HMAC algorithms supplied by hawkc library.
  */
+#ifdef __cplusplus
+typedef struct _HawkcAlgorithm *HawkcAlgorithm;
+#else
 typedef struct HawkcAlgorithm *HawkcAlgorithm;
+#endif
 
 /*
  * Memory allocation function pointers. Hawkc allows setting custom
@@ -118,7 +126,11 @@ typedef void (*HawkcFreeFunc)(HawkcContext ctx, void *ptr);
  * header data. This struct is used for storing parsed data as
  * well as for constructing header data before creating a string representation.
  */
+#ifdef __cplusplus
+typedef struct _AuthorizationHeader {
+#else
 typedef struct AuthorizationHeader {
+#endif
 	HawkcString id;
 	HawkcString mac;
 	HawkcString hash;
@@ -135,7 +147,11 @@ typedef struct AuthorizationHeader {
  * header data. This struct is used for storing parsed data as
  * well as for constructing header data before creating a string representation.
  */
+#ifdef __cplusplus
+typedef struct _WwwAuthenticateHeader {
+#else
 typedef struct WwwAuthenticateHeader {
+#endif
 	time_t ts;
 	HawkcString tsm;
 } *WwwAuthenticateHeader;
@@ -157,7 +173,11 @@ typedef struct WwwAuthenticateHeader {
  *
  *
  */
+#ifdef __cplusplus
+struct _HawkcContext {
+#else
 struct HawkcContext {
+#endif
 	HawkcMallocFunc malloc;
 	HawkcCallocFunc calloc;
 	HawkcFreeFunc free;
@@ -173,9 +193,15 @@ struct HawkcContext {
 	HawkcString host;
 	HawkcString port;
 
+#ifdef __cplusplus
+        struct _AuthorizationHeader header_in;
+        struct _AuthorizationHeader header_out;
+	struct _WwwAuthenticateHeader www_authenticate_header;
+#else
 	struct AuthorizationHeader header_in;
 	struct AuthorizationHeader header_out;
 	struct WwwAuthenticateHeader www_authenticate_header;
+#endif
 
 	unsigned char hmac_buffer[MAX_HMAC_BYTES_B64];
 	unsigned char ts_hmac_buffer[MAX_HMAC_BYTES_B64];

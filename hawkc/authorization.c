@@ -222,7 +222,7 @@ HawkcError hawkc_calculate_authorization_header_length(HawkcContext ctx, size_t 
 				return hawkc_set_error(ctx,
 						HAWKC_REQUIRED_BUFFER_TOO_LARGE, "Required base string buffer of %d bytes exceeds MAX_DYN_BASE_BUFFER_SIZE" , required_size);
 			}
-			if( (dyn_base_buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
+			if( (dyn_base_buf = (unsigned char *)hawkc_calloc(ctx,1,required_size)) == NULL) {
 				return hawkc_set_error(ctx,
 						HAWKC_NO_MEM, "Unable to allocate %d bytes for dynamic base buffer" , required_size);
 			}
@@ -377,7 +377,7 @@ HawkcError hawkc_validate_hmac(HawkcContext ctx,int *is_valid) {
 			return hawkc_set_error(ctx,
 					HAWKC_REQUIRED_BUFFER_TOO_LARGE, "Required base string buffer of %d bytes exceeds MAX_DYN_BASE_BUFFER_SIZE" , required_size);
 		}
-		if( (dyn_base_buf = hawkc_calloc(ctx,1,required_size)) == NULL) {
+		if( (dyn_base_buf = (unsigned char *)hawkc_calloc(ctx,1,required_size)) == NULL) {
 			return hawkc_set_error(ctx,
 					HAWKC_NO_MEM, "Unable to allocate %d bytes for dynamic base buffer" , required_size);
 		}

@@ -22,7 +22,7 @@ static char *PORT80 = "80";
 
 static char *mystrdup(const char *in, const char *fieldname) {
 	char *p;
-	if( (p = malloc(strlen(in)+1)) == NULL) {
+	if( (p = (char *)malloc(strlen(in)+1)) == NULL) {
 		fprintf(stderr,"Unable to allocate for %s\n" , fieldname);
 		exit(1);
 	}
@@ -33,7 +33,11 @@ static char *mystrdup(const char *in, const char *fieldname) {
 int main(int argc, char **argv) {
 
 	HawkcError e;
-	struct HawkcContext ctx;
+#ifdef __cplusplus
+	_HawkcContext ctx;
+#else
+        struct HawkcContext ctx;
+#endif
 	char *id = NULL;
 	char *password = NULL;
 	char *method = NULL;
